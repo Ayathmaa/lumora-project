@@ -7,9 +7,7 @@ import 'package:lumora_flutter/screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -22,9 +20,7 @@ class MyApp extends StatelessWidget {
       title: 'Lumora',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFB8A7E4),
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFB8A7E4)),
         useMaterial3: true,
       ),
       home: const AuthWrapper(),
@@ -38,7 +34,7 @@ class AuthWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authService = AuthService();
-    
+
     return StreamBuilder(
       stream: authService.authStateChanges,
       builder: (context, snapshot) {
@@ -47,18 +43,16 @@ class AuthWrapper extends StatelessWidget {
           return const Scaffold(
             backgroundColor: Color(0xFFFAFAFA),
             body: Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFFB8A7E4),
-              ),
+              child: CircularProgressIndicator(color: Color(0xFFB8A7E4)),
             ),
           );
         }
-        
+
         // If user is logged in, show home screen
         if (snapshot.hasData) {
           return const HomeScreen();
         }
-        
+
         // Otherwise, show login screen
         return const LoginScreen();
       },

@@ -38,10 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -75,10 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
         );
       }
     }
@@ -98,25 +92,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Logo
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF9EDCC7), Color(0xFFB8A7E4)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Icon(
-                      Icons.flutter_dash,
-                      size: 50,
-                      color: Colors.white,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  
+
                   // Lumora text
                   const Text(
                     'Lumora',
@@ -127,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  
+
                   // Welcome Back title
                   const Text(
                     'Welcome Back',
@@ -138,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  
+
                   // Email field
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,7 +193,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Password field
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,7 +276,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  
+
                   // Forgot password
                   Align(
                     alignment: Alignment.centerRight,
@@ -306,7 +292,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Login button
                   SizedBox(
                     width: double.infinity,
@@ -320,29 +306,30 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         elevation: 0,
                       ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+                      child:
+                          _isLoading
+                              ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                              : const Text(
+                                'Login',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
                                 ),
                               ),
-                            )
-                          : const Text(
-                              'Login',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Sign up link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -375,14 +362,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                   const SizedBox(height: 32),
-                  
+
                   // Tagline
                   const Text(
                     'Find peace of mind with Lumora',
-                    style: TextStyle(
-                      color: Color(0xFF9E9E9E),
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: Color(0xFF9E9E9E), fontSize: 13),
                   ),
                 ],
               ),

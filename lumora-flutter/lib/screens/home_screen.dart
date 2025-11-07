@@ -38,25 +38,17 @@ class HomeScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Logo
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF9EDCC7), Color(0xFFB8A7E4)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: const Icon(
-                  Icons.flutter_dash,
-                  size: 60,
-                  color: Colors.white,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(25),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  width: 100,
+                  height: 100,
+                  fit: BoxFit.cover,
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Welcome message
               Text(
                 'Welcome${user?.displayName != null ? ", ${user!.displayName}" : ""}!',
@@ -68,17 +60,14 @@ class HomeScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
-              
+
               // Email
               Text(
                 user?.email ?? '',
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF757575),
-                ),
+                style: const TextStyle(fontSize: 16, color: Color(0xFF757575)),
               ),
               const SizedBox(height: 32),
-              
+
               // Success message
               Container(
                 padding: const EdgeInsets.all(20),
@@ -87,7 +76,7 @@ class HomeScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -113,10 +102,7 @@ class HomeScreen extends StatelessWidget {
                     SizedBox(height: 8),
                     Text(
                       'Find peace of mind with Lumora',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF9E9E9E),
-                      ),
+                      style: TextStyle(fontSize: 14, color: Color(0xFF9E9E9E)),
                       textAlign: TextAlign.center,
                     ),
                   ],

@@ -44,10 +44,7 @@ class _SignupScreenState extends State<SignupScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -71,25 +68,17 @@ class _SignupScreenState extends State<SignupScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Logo
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF9EDCC7), Color(0xFFB8A7E4)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Icon(
-                      Icons.flutter_dash,
-                      size: 50,
-                      color: Colors.white,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  
+
                   // Lumora text
                   const Text(
                     'Lumora',
@@ -100,7 +89,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  
+
                   // Create Account title
                   const Text(
                     'Create Account',
@@ -111,7 +100,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  
+
                   // Name field
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,7 +160,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Email field
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -235,7 +224,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Password field
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -313,7 +302,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Confirm Password field
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,7 +335,8 @@ class _SignupScreenState extends State<SignupScreen> {
                             ),
                             onPressed: () {
                               setState(() {
-                                _obscureConfirmPassword = !_obscureConfirmPassword;
+                                _obscureConfirmPassword =
+                                    !_obscureConfirmPassword;
                               });
                             },
                           ),
@@ -391,7 +381,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ],
                   ),
                   const SizedBox(height: 32),
-                  
+
                   // Create Account button
                   SizedBox(
                     width: double.infinity,
@@ -405,29 +395,30 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                         elevation: 0,
                       ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+                      child:
+                          _isLoading
+                              ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                              : const Text(
+                                'Create Account',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
                                 ),
                               ),
-                            )
-                          : const Text(
-                              'Create Account',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Login link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -455,14 +446,11 @@ class _SignupScreenState extends State<SignupScreen> {
                     ],
                   ),
                   const SizedBox(height: 32),
-                  
+
                   // Tagline
                   const Text(
                     'Begin your healing journey with Lumora',
-                    style: TextStyle(
-                      color: Color(0xFF9E9E9E),
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: Color(0xFF9E9E9E), fontSize: 13),
                   ),
                 ],
               ),
