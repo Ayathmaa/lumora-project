@@ -42,8 +42,8 @@ class HomeScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(25),
                 child: Image.asset(
                   'assets/images/logo.png',
-                  width: 100,
-                  height: 100,
+                  width: 400,
+                  height: 140,
                   fit: BoxFit.cover,
                 ),
               ),
