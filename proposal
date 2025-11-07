@@ -1,0 +1,130 @@
+Got it 👍 I’ll clean up the **proposal** by removing all **AI-related parts** (like NLP/AI reframing). Here’s the revised **OCD + Mental Wellness & Digital Detox App Proposal**:
+
+---
+
+# 🧠 Project Proposal: Mental Wellness & Digital Detox App
+
+---
+
+## 1. Introduction & Background
+
+Obsessive Compulsive Disorder (OCD) and intrusive thoughts affect millions of people worldwide. Around **2–3% of the global population** experiences OCD symptoms. In Sri Lanka, mental health challenges are rising, but **stigma, cost, and limited therapy access** make treatment harder.
+
+At the same time, **digital overuse** (social media, gaming, screen time) fuels stress, poor sleep, and anxiety. Many people—even without OCD—struggle to manage compulsive behaviors linked to digital addiction.
+
+Current apps are either **too generic** (simple meditation or journaling) or focus only on one issue (like screen time). This project aims to create a **holistic mobile application** combining:
+
+* Intrusive thought support (ERP-inspired timers).
+* Mood tracking & meditation.
+* Digital detox & habit control.
+* Family/partner sharing.
+* Therapist booking & professional support.
+
+---
+
+## 2. Problem Statement
+
+* **OCD patients** lack structured, affordable tools for daily intrusive thought tracking and response-prevention practice.
+* **General users** face stress due to compulsive phone use but lack proper detox frameworks.
+* **Families/partners** want to help loved ones but need safe, private ways to stay involved.
+* **Therapists** don’t have easy digital summaries of patient progress to guide treatment.
+
+---
+
+## 3. Objectives
+
+1. Provide a **practical digital support tool** for intrusive thought management.
+2. Help users **track moods, lifestyle, and meditation habits**.
+3. Offer a **digital detox system** for reducing unhealthy behaviors.
+4. Enable **partner/family encouragement** without breaching privacy.
+5. Create a **therapist connection platform** for professional help.
+6. Ensure **privacy, anonymity, and ethical use** of sensitive data.
+
+---
+
+## 4. Key Features
+
+### 4.1 Core Mental Health Features
+
+* **Intrusive Thought Controller:** Users log intrusive thoughts and set timers to delay responses. Over time, timers increase, helping them break compulsive cycles (ERP principle).
+* **Mood Tracker:** Daily ratings (1–10), emotions, and notes.
+* **Meditation & Relaxation:** Guided audio/video mindfulness sessions.
+* **Daily Reminders:** Push notifications for thought logging and meditation.
+
+### 4.2 Progress & Analytics
+
+* **Dashboard:** Visual graphs of mood and thought trends.
+* **Correlation Insights:** Example – poor sleep linked to more intrusive thoughts.
+* **Reports & Exports:** Weekly/monthly summaries (PDF) to share with therapists or partners.
+* **Gamification:** Streaks, badges, rewards to motivate users.
+
+### 4.3 Advanced & Unique Features
+
+* **Partner/Family Sharing Mode:** Controlled summaries (not full logs) so loved ones can encourage without invading privacy.
+* **Crisis/Emergency Mode:** Severe thought logging → calming exercises + hotline numbers + optional partner alerts.
+* **Lifestyle Tracking:** Logs for sleep, exercise, caffeine, showing effects on mood.
+
+### 4.4 Digital Detox & Habit Control
+
+* **Bad Habit Logging:** Track social media, smoking, junk food, procrastination.
+* **Screen Time Monitoring (Android API):** Measure time spent on apps like Instagram, TikTok.
+* **Detox Challenges:** 7-day or 30-day streaks to reduce bad habits.
+* **Replacement Habits:** Suggestions (e.g., “10 min meditation instead of scrolling”).
+* **Partner Accountability:** Share detox progress with a partner for motivation.
+
+### 4.5 Professional Connection
+
+* **Therapist Directory:** Verified therapists with details (specialty, fees, experience).
+* **Booking System:** Appointment booking with reminders.
+* **Telehealth (Optional):** Video sessions using third-party APIs.
+* **Therapist Mode (Future):** Therapist dashboards for patient summaries (only with consent).
+
+### 4.6 Safety & Ethics
+
+* Disclaimer: *Support tool, not a replacement for therapy*.
+* Anonymous logging option.
+* Data privacy & encryption.
+* Local hotline numbers for emergencies.
+
+---
+
+## 5. Technology Stack
+
+* **Frontend:** Flutter (cross-platform for Android/iOS).
+* **Backend:** Firebase (Auth, Firestore, notifications) OR Node.js + PostgreSQL.
+* **Analytics & Reporting:** Recharts/Chart.js + PDF generator.
+* **APIs:** Google Digital Wellbeing (screen time), Zoom/Google Meet (telehealth).
+
+---
+
+## 6. Development Timeline (8 Months)
+
+* **Months 1–2:** MVP → intrusive thought logging, mood tracker, meditation module.
+* **Months 3–4:** Reports, lifestyle tracking, detox basics, gamification.
+* **Months 5–6:** Partner/family sharing, crisis mode, habit logging.
+* **Months 7–8:** Therapist directory, booking, polish, testing, pilot run.
+
+---
+
+## 7. Validation & Evaluation
+
+* **Data from daily trackers** to measure user progress.
+* **Reports & analytics** showing improved mood trends or reduced thought intensity.
+* **Pilot testing** with volunteers for 2–3 weeks.
+* **Success metrics:**
+
+  * Reduction in intrusive thought frequency/intensity.
+  * Improved average mood scores.
+  * Reduced daily screen time.
+  * Higher motivation from gamification/partner mode.
+
+---
+
+## 8. Expected Outcomes
+
+* A unique mobile app addressing **intrusive thoughts + digital detox** together.
+* Practical tool that can help both OCD patients and general stressed users.
+* Validation through measurable mood and behavior improvements.
+* Relevant to both **Sri Lanka’s mental health gaps** and **global digital wellbeing needs**.
+
+-
