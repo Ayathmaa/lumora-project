@@ -42,7 +42,7 @@ class _SignupScreenState extends State<SignupScreen> {
       // Update display name
       await _authService.currentUser?.updateDisplayName(_nameController.text);
       await _authService.currentUser?.reload();
-      
+
       // Navigate to home screen
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
@@ -58,7 +58,9 @@ class _SignupScreenState extends State<SignupScreen> {
         setState(() => _isLoading = false);
       }
     }
-  }  @override
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
