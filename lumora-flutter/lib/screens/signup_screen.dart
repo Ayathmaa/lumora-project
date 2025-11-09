@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
+import 'package:lumora_flutter/screens/home_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -40,21 +41,24 @@ class _SignupScreenState extends State<SignupScreen> {
       );
       // Update display name
       await _authService.currentUser?.updateDisplayName(_nameController.text);
-      // Navigation handled by StreamBuilder in main.dart
+      await _authService.currentUser?.reload();
+      
+      // Navigate to home screen
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          (route) => false,
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
         );
-      }
-    } finally {
-      if (mounted) {
         setState(() => _isLoading = false);
       }
     }
-  }
-
-  @override
+  }  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),

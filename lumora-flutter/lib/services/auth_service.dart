@@ -30,12 +30,21 @@ class AuthService {
     required String password,
   }) async {
     try {
-      return await _auth.createUserWithEmailAndPassword(
+      print('🔵 AUTH_SERVICE: Creating user with email: $email');
+      final result = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
+      print('✅ AUTH_SERVICE: User created - UID: ${result.user?.uid}');
+      return result;
     } on FirebaseAuthException catch (e) {
+      print(
+        '❌ AUTH_SERVICE: FirebaseAuthException - Code: ${e.code}, Message: ${e.message}',
+      );
       throw _handleAuthException(e);
+    } catch (e) {
+      print('❌ AUTH_SERVICE: Unexpected error: $e');
+      rethrow;
     }
   }
 
