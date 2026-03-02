@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:lumora_flutter/widgets/lumora_nav_bar.dart';
 
-const _kBg      = Color(0xFFC8DCF0);
-const _kNavy    = Color(0xFF1A3A5C);
+const _kBg = Color(0xFFC8DCF0);
+const _kNavy = Color(0xFF1A3A5C);
 const _kSubtitle = Color(0xFF4A6FA5);
-const _kCardBg  = Colors.white;
-const _kIconBg  = Color(0xFFD6ECFA);
-const _kBlue    = Color(0xFF6BAED4);
+const _kCardBg = Colors.white;
+const _kIconBg = Color(0xFFD6ECFA);
+const _kBlue = Color(0xFF6BAED4);
 const _kFieldFill = Color(0xFFEEF5FB);
-const _kBorder  = Color(0xFFB8D8EC);
+const _kBorder = Color(0xFFB8D8EC);
 
 class JournalScreen extends StatefulWidget {
   const JournalScreen({super.key});
@@ -24,17 +24,20 @@ class _JournalScreenState extends State<JournalScreen> {
     _JournalEntry(
       date: 'Mon, Mar 3',
       title: 'A calmer morning',
-      preview: 'Woke up feeling lighter today. The breathing exercise really helped...',
+      preview:
+          'Woke up feeling lighter today. The breathing exercise really helped...',
     ),
     _JournalEntry(
       date: 'Sun, Mar 2',
       title: 'Challenging afternoon',
-      preview: 'Had some intrusive thoughts but managed to redirect them using...',
+      preview:
+          'Had some intrusive thoughts but managed to redirect them using...',
     ),
     _JournalEntry(
       date: 'Sat, Mar 1',
       title: 'Gratitude list',
-      preview: 'Three things I am grateful for today: sunshine, my coffee and...',
+      preview:
+          'Three things I am grateful for today: sunshine, my coffee and...',
     ),
   ];
 
@@ -66,8 +69,11 @@ class _JournalScreenState extends State<JournalScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                          color: _kNavy, size: 18),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: _kNavy,
+                        size: 18,
+                      ),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ),
@@ -75,13 +81,18 @@ class _JournalScreenState extends State<JournalScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
-                      Text('Journal',
-                          style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: _kNavy)),
-                      Text('Your private space to reflect',
-                          style: TextStyle(fontSize: 12, color: _kSubtitle)),
+                      Text(
+                        'Journal',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: _kNavy,
+                        ),
+                      ),
+                      Text(
+                        'Your private space to reflect',
+                        style: TextStyle(fontSize: 12, color: _kSubtitle),
+                      ),
                     ],
                   ),
                   const Spacer(),
@@ -91,8 +102,11 @@ class _JournalScreenState extends State<JournalScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.add_rounded,
-                          color: Colors.white, size: 22),
+                      icon: const Icon(
+                        Icons.add_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
                       onPressed: _newEntry,
                       tooltip: 'New Entry',
                     ),
@@ -134,7 +148,11 @@ class _EntryCard extends StatelessWidget {
         color: _kCardBg,
         borderRadius: BorderRadius.circular(18),
         boxShadow: const [
-          BoxShadow(color: Color(0x10000000), blurRadius: 8, offset: Offset(0, 3)),
+          BoxShadow(
+            color: Color(0x10000000),
+            blurRadius: 8,
+            offset: Offset(0, 3),
+          ),
         ],
       ),
       padding: const EdgeInsets.all(18),
@@ -144,29 +162,47 @@ class _EntryCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: _kIconBg,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text(entry.date,
-                    style: const TextStyle(
-                        fontSize: 11, color: _kBlue, fontWeight: FontWeight.w600)),
+                child: Text(
+                  entry.date,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: _kBlue,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
               const Spacer(),
               const Icon(Icons.chevron_right_rounded, color: _kSubtitle),
             ],
           ),
           const SizedBox(height: 10),
-          Text(entry.title,
-              style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w700, color: _kNavy)),
+          Text(
+            entry.title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: _kNavy,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(entry.preview,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  fontSize: 13, color: _kSubtitle, height: 1.4)),
+          Text(
+            entry.preview,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13,
+              color: _kSubtitle,
+              height: 1.4,
+            ),
+          ),
         ],
       ),
     );
@@ -183,7 +219,7 @@ class _NewEntrySheet extends StatefulWidget {
 
 class _NewEntrySheetState extends State<_NewEntrySheet> {
   final _titleCtrl = TextEditingController();
-  final _bodyCtrl  = TextEditingController();
+  final _bodyCtrl = TextEditingController();
 
   @override
   void dispose() {
@@ -195,7 +231,9 @@ class _NewEntrySheetState extends State<_NewEntrySheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -208,7 +246,8 @@ class _NewEntrySheetState extends State<_NewEntrySheet> {
           children: [
             Center(
               child: Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
                   color: const Color(0xFFDDE8F0),
                   borderRadius: BorderRadius.circular(2),
@@ -216,29 +255,42 @@ class _NewEntrySheetState extends State<_NewEntrySheet> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text('New Entry',
-                style: TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.w800, color: _kNavy)),
+            const Text(
+              'New Entry',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: _kNavy,
+              ),
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: _titleCtrl,
-              style: const TextStyle(color: _kNavy, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                color: _kNavy,
+                fontWeight: FontWeight.w600,
+              ),
               decoration: InputDecoration(
                 hintText: 'Title',
                 hintStyle: const TextStyle(color: _kBorder),
                 filled: true,
                 fillColor: _kFieldFill,
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _kBorder)),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: _kBorder),
+                ),
                 enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _kBorder)),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: _kBorder),
+                ),
                 focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _kBlue, width: 1.5)),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: _kBlue, width: 1.5),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -252,14 +304,17 @@ class _NewEntrySheetState extends State<_NewEntrySheet> {
                 filled: true,
                 fillColor: _kFieldFill,
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _kBorder)),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: _kBorder),
+                ),
                 enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _kBorder)),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: _kBorder),
+                ),
                 focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _kBlue, width: 1.5)),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: _kBlue, width: 1.5),
+                ),
                 contentPadding: const EdgeInsets.all(16),
               ),
             ),
@@ -274,11 +329,13 @@ class _NewEntrySheetState extends State<_NewEntrySheet> {
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
-                child: const Text('Save Entry',
-                    style:
-                        TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                child: const Text(
+                  'Save Entry',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
           ],
@@ -292,6 +349,9 @@ class _JournalEntry {
   final String date;
   final String title;
   final String preview;
-  const _JournalEntry(
-      {required this.date, required this.title, required this.preview});
+  const _JournalEntry({
+    required this.date,
+    required this.title,
+    required this.preview,
+  });
 }

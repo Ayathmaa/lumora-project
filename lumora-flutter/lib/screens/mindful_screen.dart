@@ -2,12 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:lumora_flutter/widgets/lumora_nav_bar.dart';
 
-const _kBg       = Color(0xFFC8DCF0);
-const _kNavy     = Color(0xFF1A3A5C);
+const _kBg = Color(0xFFC8DCF0);
+const _kNavy = Color(0xFF1A3A5C);
 const _kSubtitle = Color(0xFF4A6FA5);
-const _kCardBg   = Colors.white;
-const _kIconBg   = Color(0xFFD6ECFA);
-const _kBlue     = Color(0xFF6BAED4);
+const _kCardBg = Colors.white;
+const _kIconBg = Color(0xFFD6ECFA);
+const _kBlue = Color(0xFF6BAED4);
 
 class MindfulScreen extends StatefulWidget {
   const MindfulScreen({super.key});
@@ -146,8 +146,11 @@ class _MindfulScreenState extends State<MindfulScreen>
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                          color: _kNavy, size: 18),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: _kNavy,
+                        size: 18,
+                      ),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ),
@@ -155,13 +158,18 @@ class _MindfulScreenState extends State<MindfulScreen>
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
-                      Text('Mindful',
-                          style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: _kNavy)),
-                      Text('Breathe, relax, and stay present',
-                          style: TextStyle(fontSize: 12, color: _kSubtitle)),
+                      Text(
+                        'Mindful',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: _kNavy,
+                        ),
+                      ),
+                      Text(
+                        'Breathe, relax, and stay present',
+                        style: TextStyle(fontSize: 12, color: _kSubtitle),
+                      ),
                     ],
                   ),
                 ],
@@ -171,27 +179,36 @@ class _MindfulScreenState extends State<MindfulScreen>
               // ── Box breathing card ────────────────────────────────────
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 32,
+                  horizontal: 24,
+                ),
                 decoration: BoxDecoration(
                   color: _kCardBg,
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: const [
                     BoxShadow(
-                        color: Color(0x10000000),
-                        blurRadius: 10,
-                        offset: Offset(0, 4)),
+                      color: Color(0x10000000),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
                   ],
                 ),
                 child: Column(
                   children: [
-                    const Text('Box Breathing',
-                        style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            color: _kNavy)),
+                    const Text(
+                      'Box Breathing',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: _kNavy,
+                      ),
+                    ),
                     const SizedBox(height: 6),
-                    const Text('Reduces anxiety and stress',
-                        style: TextStyle(fontSize: 12, color: _kSubtitle)),
+                    const Text(
+                      'Reduces anxiety and stress',
+                      style: TextStyle(fontSize: 12, color: _kSubtitle),
+                    ),
                     const SizedBox(height: 28),
 
                     // Animated circle
@@ -214,18 +231,20 @@ class _MindfulScreenState extends State<MindfulScreen>
                                     ? _phases[_phaseIndex]
                                     : 'Ready',
                                 style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                    color: _kNavy),
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: _kNavy,
+                                ),
                               ),
                               if (_breathingActive) ...[
                                 const SizedBox(height: 4),
                                 Text(
                                   '$_phaseSeconds',
                                   style: const TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.w900,
-                                      color: _kBlue),
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w900,
+                                    color: _kBlue,
+                                  ),
                                 ),
                               ],
                             ],
@@ -246,12 +265,15 @@ class _MindfulScreenState extends State<MindfulScreen>
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
                         child: Text(
                           _breathingActive ? 'Stop' : 'Start',
                           style: const TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.w600),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
@@ -261,11 +283,14 @@ class _MindfulScreenState extends State<MindfulScreen>
               const SizedBox(height: 16),
 
               // ── More exercises ────────────────────────────────────────
-              const Text('More Exercises',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: _kNavy)),
+              const Text(
+                'More Exercises',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: _kNavy,
+                ),
+              ),
               const SizedBox(height: 12),
               ..._exercises.map((e) => _ExerciseCard(exercise: e)),
             ],
@@ -295,7 +320,10 @@ class _ExerciseCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: const [
           BoxShadow(
-              color: Color(0x10000000), blurRadius: 6, offset: Offset(0, 2)),
+            color: Color(0x10000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
         ],
       ),
       child: Row(
@@ -314,24 +342,31 @@ class _ExerciseCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(exercise.title,
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: _kNavy)),
+                Text(
+                  exercise.title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: _kNavy,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(exercise.duration,
-                    style: const TextStyle(fontSize: 12, color: _kSubtitle)),
+                Text(
+                  exercise.duration,
+                  style: const TextStyle(fontSize: 12, color: _kSubtitle),
+                ),
               ],
             ),
           ),
           Container(
             width: 32,
             height: 32,
-            decoration:
-                BoxDecoration(color: _kIconBg, shape: BoxShape.circle),
-            child: const Icon(Icons.play_arrow_rounded,
-                color: _kBlue, size: 18),
+            decoration: BoxDecoration(color: _kIconBg, shape: BoxShape.circle),
+            child: const Icon(
+              Icons.play_arrow_rounded,
+              color: _kBlue,
+              size: 18,
+            ),
           ),
         ],
       ),
@@ -344,9 +379,10 @@ class _Exercise {
   final String duration;
   final IconData icon;
   final Color color;
-  const _Exercise(
-      {required this.title,
-      required this.duration,
-      required this.icon,
-      required this.color});
+  const _Exercise({
+    required this.title,
+    required this.duration,
+    required this.icon,
+    required this.color,
+  });
 }
