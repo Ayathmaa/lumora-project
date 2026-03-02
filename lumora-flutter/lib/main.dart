@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
       title: 'Lumora',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFB8A7E4)),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF7AB5D8)),
         useMaterial3: true,
       ),
       home: const AuthWrapper(),
@@ -41,9 +41,9 @@ class AuthWrapper extends StatelessWidget {
         // Show loading while checking auth state
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            backgroundColor: Color(0xFFFAFAFA),
+            backgroundColor: Color(0xFFC8DCF0),
             body: Center(
-              child: CircularProgressIndicator(color: Color(0xFFB8A7E4)),
+              child: CircularProgressIndicator(color: Color(0xFF7AB5D8)),
             ),
           );
         }
