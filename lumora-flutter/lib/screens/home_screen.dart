@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
 import 'package:lumora_flutter/screens/login_screen.dart';
 import 'package:lumora_flutter/widgets/lumora_nav_bar.dart';
+import 'package:lumora_flutter/screens/journal_screen.dart';
+import 'package:lumora_flutter/screens/erp_timer_screen.dart';
+import 'package:lumora_flutter/screens/progress_screen.dart';
+import 'package:lumora_flutter/screens/mindful_screen.dart';
 
 // ── colour palette ──────────────────────────────────────────────────────────
 const _kBg = Color(0xFFC8DCF0); // scaffold background
@@ -350,6 +354,16 @@ class _FeatureGrid extends StatelessWidget {
   }
 }
 
+Widget _routeForFeature(String label) {
+  switch (label) {
+    case 'Journal':   return const JournalScreen();
+    case 'ERP Timer': return const ErpTimerScreen();
+    case 'Progress':  return const ProgressScreen();
+    case 'Mindful':   return const MindfulScreen();
+    default:          return const SizedBox();
+  }
+}
+
 class _FeatureCard extends StatelessWidget {
   final _Feature feature;
   const _FeatureCard({required this.feature});
@@ -357,7 +371,9 @@ class _FeatureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {},
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => _routeForFeature(feature.label)),
+      ),
       child: Container(
         decoration: BoxDecoration(
           color: _kCardBg,

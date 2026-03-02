@@ -138,392 +138,396 @@ class _SignupScreenState extends State<SignupScreen> {
         ),
         child: SafeArea(
           child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                const SizedBox(height: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 28.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  const SizedBox(height: 4),
 
-                // Logo
-                Image.asset(
-                  'assets/images/logo_v2.png',
-                  width: 90,
-                  height: 90,
-                  fit: BoxFit.contain,
-                ),
+                  // Logo
+                  Image.asset(
+                    'assets/images/logo_v2.png',
+                    width: 90,
+                    height: 90,
+                    fit: BoxFit.contain,
+                  ),
 
-                // App name
-                Transform.translate(
-                  offset: const Offset(0, -30),
-                  child: const Text(
-                    'Lumora',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: _kNavy,
+                  // App name
+                  Transform.translate(
+                    offset: const Offset(0, -30),
+                    child: const Text(
+                      'Lumora',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: _kNavy,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 6),
+                  const SizedBox(height: 6),
 
-                // Tagline
-                Transform.translate(
-                  offset: const Offset(0, -30),
-                  child: const Text(
-                    'Begin your healing journey.',
-                    style: TextStyle(fontSize: 13, color: _kSubtitle),
+                  // Tagline
+                  Transform.translate(
+                    offset: const Offset(0, -30),
+                    child: const Text(
+                      'Begin your healing journey.',
+                      style: TextStyle(fontSize: 13, color: _kSubtitle),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
+                  const SizedBox(height: 6),
 
-                // ── White card ──────────────────────────────────────
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.07),
-                        blurRadius: 20,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      // Card title
-                      const Text(
-                        'Create Your Account',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: _kNavy,
+                  // ── White card ──────────────────────────────────────
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.07),
+                          blurRadius: 20,
+                          offset: const Offset(0, 6),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Your safe space starts here.',
-                        style: TextStyle(fontSize: 13, color: _kSubtitle),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Full Name
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: _fieldDecoration(
-                          hint: 'Full Name',
-                          prefixIcon: Icons.person_outline,
-                        ),
-                        validator: (v) {
-                          if (v == null || v.isEmpty)
-                            return 'Please enter your name';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Email
-                      TextFormField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: _fieldDecoration(
-                          hint: 'Email Address',
-                          prefixIcon: Icons.email_outlined,
-                        ),
-                        validator: (v) {
-                          if (v == null || v.isEmpty)
-                            return 'Please enter your email';
-                          if (!v.contains('@'))
-                            return 'Please enter a valid email';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Password
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        decoration: _fieldDecoration(
-                          hint: 'Password',
-                          prefixIcon: Icons.lock_outline,
-                          suffix: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              color: _kIconHint,
-                              size: 20,
-                            ),
-                            onPressed:
-                                () => setState(
-                                  () => _obscurePassword = !_obscurePassword,
-                                ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        // Card title
+                        const Text(
+                          'Create Your Account',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: _kNavy,
                           ),
                         ),
-                        validator: (v) {
-                          if (v == null || v.isEmpty)
-                            return 'Please create a password';
-                          if (v.length < 6)
-                            return 'Password must be at least 6 characters';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 14),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Your safe space starts here.',
+                          style: TextStyle(fontSize: 13, color: _kSubtitle),
+                        ),
+                        const SizedBox(height: 14),
 
-                      // Confirm Password
-                      TextFormField(
-                        controller: _confirmPasswordController,
-                        obscureText: _obscureConfirmPassword,
-                        decoration: _fieldDecoration(
-                          hint: 'Confirm Password',
-                          prefixIcon: Icons.lock_outline,
-                          suffix: IconButton(
-                            icon: Icon(
-                              _obscureConfirmPassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              color: _kIconHint,
-                              size: 20,
-                            ),
-                            onPressed:
-                                () => setState(
-                                  () =>
-                                      _obscureConfirmPassword =
-                                          !_obscureConfirmPassword,
-                                ),
+                        // Full Name
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: _fieldDecoration(
+                            hint: 'Full Name',
+                            prefixIcon: Icons.person_outline,
                           ),
+                          validator: (v) {
+                            if (v == null || v.isEmpty)
+                              return 'Please enter your name';
+                            return null;
+                          },
                         ),
-                        validator: (v) {
-                          if (v == null || v.isEmpty)
-                            return 'Please confirm your password';
-                          if (v != _passwordController.text)
-                            return 'Passwords do not match';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 14),
+                        const SizedBox(height: 14),
 
-                      // Age Group dropdown
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _kFieldFill,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: const Color(0xFFB8D8EC),
-                            width: 1,
+                        // Email
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: _fieldDecoration(
+                            hint: 'Email Address',
+                            prefixIcon: Icons.email_outlined,
                           ),
+                          validator: (v) {
+                            if (v == null || v.isEmpty)
+                              return 'Please enter your email';
+                            if (!v.contains('@'))
+                              return 'Please enter a valid email';
+                            return null;
+                          },
                         ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedAgeGroup,
-                            hint: Row(
-                              children: const [
-                                Icon(
-                                  Icons.person_outline,
-                                  color: _kIconHint,
-                                  size: 20,
-                                ),
-                                SizedBox(width: 12),
-                                Text(
-                                  'Age Group (Optional)',
-                                  style: TextStyle(
-                                    color: _kIconHint,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            icon: const Icon(
-                              Icons.keyboard_arrow_down,
-                              color: _kIconHint,
-                            ),
-                            isExpanded: true,
-                            style: const TextStyle(color: _kNavy, fontSize: 14),
-                            dropdownColor: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            items:
-                                _ageGroups
-                                    .map(
-                                      (g) => DropdownMenuItem(
-                                        value: g,
-                                        child: Text(g),
-                                      ),
-                                    )
-                                    .toList(),
-                            onChanged:
-                                (v) => setState(() => _selectedAgeGroup = v),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
+                        const SizedBox(height: 14),
 
-                      // Terms checkbox
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: Checkbox(
-                              value: _agreedToTerms,
-                              onChanged:
-                                  (v) => setState(
-                                    () => _agreedToTerms = v ?? false,
-                                  ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(4),
+                        // Password
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          decoration: _fieldDecoration(
+                            hint: 'Password',
+                            prefixIcon: Icons.lock_outline,
+                            suffix: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                color: _kIconHint,
+                                size: 20,
                               ),
-                              side: const BorderSide(color: _kIconHint),
-                              activeColor: _kButton,
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
+                              onPressed:
+                                  () => setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: RichText(
-                              text: const TextSpan(
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: _kSubtitle,
-                                ),
-                                children: [
-                                  TextSpan(text: 'I agree to the  '),
-                                  TextSpan(
-                                    text: 'Terms',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      color: _kNavy,
-                                    ),
+                          validator: (v) {
+                            if (v == null || v.isEmpty)
+                              return 'Please create a password';
+                            if (v.length < 6)
+                              return 'Password must be at least 6 characters';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Confirm Password
+                        TextFormField(
+                          controller: _confirmPasswordController,
+                          obscureText: _obscureConfirmPassword,
+                          decoration: _fieldDecoration(
+                            hint: 'Confirm Password',
+                            prefixIcon: Icons.lock_outline,
+                            suffix: IconButton(
+                              icon: Icon(
+                                _obscureConfirmPassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                color: _kIconHint,
+                                size: 20,
+                              ),
+                              onPressed:
+                                  () => setState(
+                                    () =>
+                                        _obscureConfirmPassword =
+                                            !_obscureConfirmPassword,
                                   ),
-                                  TextSpan(text: '  &  '),
-                                  TextSpan(
-                                    text: 'Privacy Policy',
+                            ),
+                          ),
+                          validator: (v) {
+                            if (v == null || v.isEmpty)
+                              return 'Please confirm your password';
+                            if (v != _passwordController.text)
+                              return 'Passwords do not match';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Age Group dropdown
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _kFieldFill,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: const Color(0xFFB8D8EC),
+                              width: 1,
+                            ),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedAgeGroup,
+                              hint: Row(
+                                children: const [
+                                  Icon(
+                                    Icons.person_outline,
+                                    color: _kIconHint,
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    'Age Group (Optional)',
                                     style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      color: _kNavy,
+                                      color: _kIconHint,
+                                      fontSize: 14,
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Security note
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(
-                            Icons.shield_outlined,
-                            color: _kIconHint,
-                            size: 16,
-                          ),
-                          SizedBox(width: 6),
-                          Text(
-                            'Your data is encrypted and secure.',
-                            style: TextStyle(fontSize: 12, color: _kSubtitle),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Create Account button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton(
-                          onPressed:
-                              _isLoading
-                                  ? null
-                                  : () {
-                                    if (!_agreedToTerms) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Please agree to the Terms & Privacy Policy',
-                                          ),
-                                          backgroundColor: Colors.orange,
+                              icon: const Icon(
+                                Icons.keyboard_arrow_down,
+                                color: _kIconHint,
+                              ),
+                              isExpanded: true,
+                              style: const TextStyle(
+                                color: _kNavy,
+                                fontSize: 14,
+                              ),
+                              dropdownColor: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              items:
+                                  _ageGroups
+                                      .map(
+                                        (g) => DropdownMenuItem(
+                                          value: g,
+                                          child: Text(g),
                                         ),
-                                      );
-                                      return;
-                                    }
-                                    _signUp();
-                                  },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _kButton,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
+                                      )
+                                      .toList(),
+                              onChanged:
+                                  (v) => setState(() => _selectedAgeGroup = v),
                             ),
-                            elevation: 0,
                           ),
-                          child:
-                              _isLoading
-                                  ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Terms checkbox
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: Checkbox(
+                                value: _agreedToTerms,
+                                onChanged:
+                                    (v) => setState(
+                                      () => _agreedToTerms = v ?? false,
+                                    ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                side: const BorderSide(color: _kIconHint),
+                                activeColor: _kButton,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: RichText(
+                                text: const TextSpan(
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: _kSubtitle,
+                                  ),
+                                  children: [
+                                    TextSpan(text: 'I agree to the  '),
+                                    TextSpan(
+                                      text: 'Terms',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: _kNavy,
                                       ),
                                     ),
-                                  )
-                                  : const Text(
-                                    'Create Account',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
+                                    TextSpan(text: '  &  '),
+                                    TextSpan(
+                                      text: 'Privacy Policy',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: _kNavy,
+                                      ),
                                     ),
-                                  ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Security note
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(
+                              Icons.shield_outlined,
+                              color: _kIconHint,
+                              size: 16,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Your data is encrypted and secure.',
+                              style: TextStyle(fontSize: 12, color: _kSubtitle),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Create Account button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed:
+                                _isLoading
+                                    ? null
+                                    : () {
+                                      if (!_agreedToTerms) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Please agree to the Terms & Privacy Policy',
+                                            ),
+                                            backgroundColor: Colors.orange,
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      _signUp();
+                                    },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _kButton,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              elevation: 0,
+                            ),
+                            child:
+                                _isLoading
+                                    ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                      ),
+                                    )
+                                    : const Text(
+                                      'Create Account',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ── End card ────────────────────────────────────────
+                  const SizedBox(height: 28),
+
+                  // Log In link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Already have an account? ',
+                        style: TextStyle(fontSize: 14, color: _kSubtitle),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: const Text(
+                          'Log In',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: _kNavy,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ),
-
-                // ── End card ────────────────────────────────────────
-                const SizedBox(height: 28),
-
-                // Log In link
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'Already have an account? ',
-                      style: TextStyle(fontSize: 14, color: _kSubtitle),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: const Text(
-                        'Log In',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: _kNavy,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-              ],
+                  const SizedBox(height: 32),
+                ],
+              ),
             ),
           ),
-        ),
         ),
       ),
     );
