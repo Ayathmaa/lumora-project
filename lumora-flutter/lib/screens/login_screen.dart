@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
 import 'package:lumora_flutter/screens/signup_screen.dart';
-import 'package:lumora_flutter/screens/home_screen.dart';
+import 'package:lumora_flutter/screens/main_shell.dart';
 
 // Design constants
 const _kNavy = Color(0xFF1A3A5C);
@@ -46,7 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => const MainShell()),
           (route) => false,
         );
       }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
-import 'package:lumora_flutter/screens/home_screen.dart';
+import 'package:lumora_flutter/screens/main_shell.dart';
 
 // Design constants
 const _kNavy = Color(0xFF1A3A5C);
@@ -73,7 +73,7 @@ class _SignupScreenState extends State<SignupScreen> {
       // Navigate to home screen
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          MaterialPageRoute(builder: (context) => const MainShell()),
           (route) => false,
         );
       }

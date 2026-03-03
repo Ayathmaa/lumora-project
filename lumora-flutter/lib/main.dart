@@ -3,7 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
 import 'package:lumora_flutter/screens/login_screen.dart';
-import 'package:lumora_flutter/screens/home_screen.dart';
+import 'package:lumora_flutter/screens/main_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,9 +48,9 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
-        // If user is logged in, show home screen
+        // If user is logged in, show main shell (with nav bar)
         if (snapshot.hasData) {
-          return const HomeScreen();
+          return const MainShell();
         }
 
         // Otherwise, show login screen

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:lumora_flutter/widgets/lumora_nav_bar.dart';
 
 const _kBg = Color(0xFFC8DCF0);
 const _kNavy = Color(0xFF1A3A5C);
@@ -17,8 +16,6 @@ class ErpTimerScreen extends StatefulWidget {
 }
 
 class _ErpTimerScreenState extends State<ErpTimerScreen> {
-  int _navIndex = 0;
-
   // Timer state
   static const _presetMinutes = [5, 10, 15, 20, 30, 45];
   int _selectedMinutes = 10;
@@ -411,10 +408,6 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
             ],
           ),
         ),
-      ),
-      bottomNavigationBar: LumoraNavBar(
-        currentIndex: _navIndex,
-        onTap: (i) => setState(() => _navIndex = i),
       ),
     );
   }

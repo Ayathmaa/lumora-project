@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:lumora_flutter/widgets/lumora_nav_bar.dart';
 
 const _kBg = Color(0xFFC8DCF0);
 const _kNavy = Color(0xFF1A3A5C);
@@ -18,8 +17,6 @@ class MindfulScreen extends StatefulWidget {
 
 class _MindfulScreenState extends State<MindfulScreen>
     with SingleTickerProviderStateMixin {
-  int _navIndex = 0;
-
   // Breathing exercise
   static const _phases = ['Inhale', 'Hold', 'Exhale', 'Hold'];
   static const _phaseDurations = [4, 4, 6, 2]; // seconds
@@ -296,10 +293,6 @@ class _MindfulScreenState extends State<MindfulScreen>
             ],
           ),
         ),
-      ),
-      bottomNavigationBar: LumoraNavBar(
-        currentIndex: _navIndex,
-        onTap: (i) => setState(() => _navIndex = i),
       ),
     );
   }

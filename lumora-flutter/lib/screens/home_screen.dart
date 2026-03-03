@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
-import 'package:lumora_flutter/screens/login_screen.dart';
-import 'package:lumora_flutter/widgets/lumora_nav_bar.dart';
 import 'package:lumora_flutter/screens/journal_screen.dart';
 import 'package:lumora_flutter/screens/erp_timer_screen.dart';
 import 'package:lumora_flutter/screens/progress_screen.dart';
@@ -20,7 +18,8 @@ const _kBarTrack = Color(0xFFE0EAF4); // XP bar track
 // ────────────────────────────────────────────────────────────────────────────
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final VoidCallback? onProfileTap;
+  const HomeScreen({super.key, this.onProfileTap});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -29,19 +28,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _authService = AuthService();
 
-  int _navIndex = 0;
   int? _selectedMood; // 0 = saddest … 4 = happiest
-
-  // ── logout ─────────────────────────────────────────────────────────────────
-  Future<void> _logout() async {
-    await _authService.signOut();
-    if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
-    }
-  }
 
   // ── build ──────────────────────────────────────────────────────────────────
   @override
@@ -60,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // ── greeting card ─────────────────────────────────────────────
-              _GreetingCard(name: displayName, onLogout: _logout),
+              _GreetingCard(name: displayName, onProfileTap: widget.onProfileTap),
               const SizedBox(height: 14),
 
               // ── quote of the day ──────────────────────────────────────────
@@ -80,10 +67,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: LumoraNavBar(
-        currentIndex: _navIndex,
-        onTap: (i) => setState(() => _navIndex = i),
-      ),
     );
   }
 }
@@ -93,9 +76,9 @@ class _HomeScreenState extends State<HomeScreen> {
 // ════════════════════════════════════════════════════════════════════════════
 class _GreetingCard extends StatelessWidget {
   final String name;
-  final VoidCallback onLogout;
+  final VoidCallback? onProfileTap;
 
-  const _GreetingCard({required this.name, required this.onLogout});
+  const _GreetingCard({required this.name, required this.onProfileTap});
 
   @override
   Widget build(BuildContext context) {
@@ -115,7 +98,7 @@ class _GreetingCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Name row + logout icon
+          // Name row + profile icon
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -140,14 +123,21 @@ class _GreetingCard extends StatelessWidget {
                   ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(
-                  Icons.logout_rounded,
-                  color: _kSubtitle,
-                  size: 20,
+              GestureDetector(
+                onTap: onProfileTap,
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: _kCardBg,
+                    shape: BoxShape.circle,
+                    boxShadow: const [
+                      BoxShadow(color: Color(0x14000000), blurRadius: 6),
+                    ],
+                  ),
+                  child: const Icon(Icons.person_rounded,
+                      color: _kBlue, size: 20),
                 ),
-                onPressed: onLogout,
-                tooltip: 'Logout',
               ),
             ],
           ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lumora_flutter/widgets/lumora_nav_bar.dart';
 
 const _kBg = Color(0xFFC8DCF0);
 const _kNavy = Color(0xFF1A3A5C);
@@ -16,8 +15,6 @@ class ProgressScreen extends StatefulWidget {
 }
 
 class _ProgressScreenState extends State<ProgressScreen> {
-  int _navIndex = 0;
-
   static const _weekDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
   // 1 = completed, 0.5 = partial, 0 = missed
   static const _weekActivity = [1.0, 1.0, 0.5, 1.0, 0.0, 0.0, 0.0];
@@ -311,10 +308,6 @@ class _ProgressScreenState extends State<ProgressScreen> {
             ],
           ),
         ),
-      ),
-      bottomNavigationBar: LumoraNavBar(
-        currentIndex: _navIndex,
-        onTap: (i) => setState(() => _navIndex = i),
       ),
     );
   }

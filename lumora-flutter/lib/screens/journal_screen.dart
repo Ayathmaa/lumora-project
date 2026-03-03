@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lumora_flutter/widgets/lumora_nav_bar.dart';
 
 const _kBg = Color(0xFFC8DCF0);
 const _kNavy = Color(0xFF1A3A5C);
@@ -18,8 +17,6 @@ class JournalScreen extends StatefulWidget {
 }
 
 class _JournalScreenState extends State<JournalScreen> {
-  int _navIndex = 1;
-
   final List<_JournalEntry> _entries = [
     _JournalEntry(
       date: 'Mon, Mar 3',
@@ -127,10 +124,6 @@ class _JournalScreenState extends State<JournalScreen> {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: LumoraNavBar(
-        currentIndex: _navIndex,
-        onTap: (i) => setState(() => _navIndex = i),
       ),
     );
   }
