@@ -47,7 +47,10 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // ── greeting card ─────────────────────────────────────────────
-              _GreetingCard(name: displayName, onProfileTap: widget.onProfileTap),
+              _GreetingCard(
+                name: displayName,
+                onProfileTap: widget.onProfileTap,
+              ),
               const SizedBox(height: 14),
 
               // ── quote of the day ──────────────────────────────────────────
@@ -135,8 +138,11 @@ class _GreetingCard extends StatelessWidget {
                       BoxShadow(color: Color(0x14000000), blurRadius: 6),
                     ],
                   ),
-                  child: const Icon(Icons.person_rounded,
-                      color: _kBlue, size: 20),
+                  child: const Icon(
+                    Icons.person_rounded,
+                    color: _kBlue,
+                    size: 20,
+                  ),
                 ),
               ),
             ],

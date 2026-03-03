@@ -16,8 +16,11 @@ class _ComingSoonScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.construction_rounded,
-                size: 64, color: Color(0xFF6BAED4)),
+            const Icon(
+              Icons.construction_rounded,
+              size: 64,
+              color: Color(0xFF6BAED4),
+            ),
             const SizedBox(height: 16),
             Text(
               title,
