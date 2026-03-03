@@ -56,18 +56,31 @@ dev_dependencies:
   
   # App launcher icon generator
   flutter_launcher_icons: ^0.14.1
+  
+  # Native splash screen generator
+  flutter_native_splash: ^2.4.3
 
 # Flutter Launcher Icons configuration
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/appicon.png"
+  image_path: "assets/images/logo_v2.png"
   remove_alpha_ios: true
-  adaptive_icon_background: "#B8A7E4"
-  adaptive_icon_foreground: "assets/images/appicon.png"
+  adaptive_icon_background: "#C8DCF0"
+  adaptive_icon_foreground: "assets/images/logo_v2.png"
   min_sdk_android: 23
-  # Make the icon fill more of the space
   adaptive_icon_padding: 0
+
+# Native splash screen configuration
+flutter_native_splash:
+  color: "#C8DCF0"
+  image: assets/images/logo_v2.png
+  color_dark: "#C8DCF0"
+  image_dark: assets/images/logo_v2.png
+  android_12:
+    color: "#C8DCF0"
+    image: assets/images/logo_v2.png
+  fullscreen: false
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
