@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
 import 'package:lumora_flutter/screens/signup_screen.dart';
 import 'package:lumora_flutter/screens/main_shell.dart';
+import 'package:lumora_flutter/screens/google_profile_completion_screen.dart';
 
 // Design constants
 const _kNavy = Color(0xFF1A3A5C);
@@ -58,6 +60,36 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } finally {
       if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      final result = await _authService.signInWithGoogle();
+      if (!mounted) return;
+      if (result.additionalUserInfo?.isNewUser == true) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => GoogleProfileCompletionScreen(
+              googleUser: result.user!,
+            ),
+          ),
+          (route) => false,
+        );
+      } else {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const MainShell()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        );
         setState(() => _isLoading = false);
       }
     }
@@ -244,10 +276,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             prefixIcon: Icons.email_outlined,
                           ),
                           validator: (v) {
-                            if (v == null || v.isEmpty)
+                            if (v == null || v.isEmpty) {
                               return 'Please enter your email';
-                            if (!v.contains('@'))
+                            }
+                            if (!v.contains('@')) {
                               return 'Please enter a valid email';
+                            }
                             return null;
                           },
                         ),
@@ -286,10 +320,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           validator: (v) {
-                            if (v == null || v.isEmpty)
+                            if (v == null || v.isEmpty) {
                               return 'Please enter your password';
-                            if (v.length < 6)
+                            }
+                            if (v.length < 6) {
                               return 'Password must be at least 6 characters';
+                            }
                             return null;
                           },
                         ),
@@ -371,6 +407,66 @@ class _LoginScreenState extends State<LoginScreen> {
                                         color: Colors.white,
                                       ),
                                     ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // OR divider
+                        Row(
+                          children: [
+                            const Expanded(
+                                child: Divider(color: Color(0xFFB8D8EC))),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                'OR',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: _kSubtitle,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            const Expanded(
+                                child: Divider(color: Color(0xFFB8D8EC))),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Google sign-in button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: OutlinedButton(
+                            onPressed: _isLoading ? null : _signInWithGoogle,
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(
+                                  color: Color(0xFFB8D8EC), width: 1.5),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              backgroundColor: Colors.white,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SvgPicture.asset(
+                                  'assets/images/google_logo.svg',
+                                  width: 22,
+                                  height: 22,
+                                ),
+                                const SizedBox(width: 10),
+                                const Text(
+                                  'Continue with Google',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: _kNavy,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],

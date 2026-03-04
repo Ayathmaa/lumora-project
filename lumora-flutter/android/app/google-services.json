@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "567558823095-eff1sc01je810onsoju91gft29ho8k23.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.lumora_flutter",
+            "certificate_hash": "379c017230c55e43d0caba97345056d35fc2f65c"
+          }
+        },
+        {
           "client_id": "567558823095-7hjlpgiehbapf48egcevgidkdo5q69ri.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -29,6 +37,13 @@
             {
               "client_id": "567558823095-7hjlpgiehbapf48egcevgidkdo5q69ri.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "567558823095-9obo89u1744uhlo14lec9foivoi8bu3b.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.lumoraFlutter"
+              }
             }
           ]
         }

@@ -45,3 +45,5 @@ app.*.map.json
 /android/app/release
 
 Firebase_Backend_Feasibility_Plan.md
+anochat_impovement.md
+ios_google_signin_setup.md

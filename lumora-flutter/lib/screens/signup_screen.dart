@@ -1,6 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
 import 'package:lumora_flutter/screens/main_shell.dart';
+import 'package:lumora_flutter/screens/google_profile_completion_screen.dart';
+
+final _usernameRegex = RegExp(r'^[a-zA-Z0-9_]{3,20}$');
 
 // Design constants
 const _kNavy = Color(0xFF1A3A5C);
@@ -39,17 +44,84 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _agreedToTerms = false;
   String? _selectedAgeGroup;
 
+  // Username availability
+  final _usernameController = TextEditingController();
+  bool _isCheckingUsername = false;
+  bool? _isUsernameAvailable;
+  Timer? _debounceTimer;
+
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
+  }
+
+  void _onUsernameChanged(String value) {
+    _debounceTimer?.cancel();
+    if (value.isEmpty || !_usernameRegex.hasMatch(value)) {
+      setState(() {
+        _isCheckingUsername = false;
+        _isUsernameAvailable = null;
+      });
+      return;
+    }
+    setState(() {
+      _isCheckingUsername = true;
+      _isUsernameAvailable = null;
+    });
+    _debounceTimer = Timer(const Duration(milliseconds: 600), () async {
+      final taken = await _authService.isUsernameTaken(value);
+      if (mounted && _usernameController.text == value) {
+        setState(() {
+          _isCheckingUsername = false;
+          _isUsernameAvailable = !taken;
+        });
+      }
+    });
+  }
+
+  Widget _usernameStatusIcon() {
+    if (_isCheckingUsername) {
+      return const Padding(
+        padding: EdgeInsets.only(right: 12),
+        child: SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(strokeWidth: 2, color: _kButton),
+        ),
+      );
+    }
+    if (_isUsernameAvailable == true) {
+      return const Padding(
+        padding: EdgeInsets.only(right: 4),
+        child: Icon(Icons.check_circle_outline, color: Colors.green, size: 20),
+      );
+    }
+    if (_isUsernameAvailable == false) {
+      return const Padding(
+        padding: EdgeInsets.only(right: 4),
+        child: Icon(Icons.cancel_outlined, color: Colors.redAccent, size: 20),
+      );
+    }
+    return const SizedBox.shrink();
   }
 
   Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_isUsernameAvailable != true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please choose an available username'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -67,6 +139,7 @@ class _SignupScreenState extends State<SignupScreen> {
         uid: credential.user!.uid,
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
+        username: _usernameController.text.trim(),
         ageGroup: _selectedAgeGroup,
       );
 
@@ -74,6 +147,36 @@ class _SignupScreenState extends State<SignupScreen> {
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const MainShell()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        );
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _signUpWithGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      final result = await _authService.signInWithGoogle();
+      if (!mounted) return;
+      if (result.additionalUserInfo?.isNewUser == true) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => GoogleProfileCompletionScreen(
+              googleUser: result.user!,
+            ),
+          ),
+          (route) => false,
+        );
+      } else {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const MainShell()),
           (route) => false,
         );
       }
@@ -221,10 +324,43 @@ class _SignupScreenState extends State<SignupScreen> {
                             prefixIcon: Icons.person_outline,
                           ),
                           validator: (v) {
-                            if (v == null || v.isEmpty)
+                            if (v == null || v.isEmpty) {
                               return 'Please enter your name';
+                            }
                             return null;
                           },
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Username
+                        TextFormField(
+                          controller: _usernameController,
+                          onChanged: _onUsernameChanged,
+                          decoration: _fieldDecoration(
+                            hint: 'AnoChat Username (e.g. calm_sky_21)',
+                            prefixIcon: Icons.alternate_email,
+                            suffix: _usernameStatusIcon(),
+                          ),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'Please choose a username';
+                            }
+                            if (!_usernameRegex.hasMatch(v)) {
+                              return 'Letters, numbers & underscores only (3–20 chars)';
+                            }
+                            if (_isUsernameAvailable == false) {
+                              return 'Username is already taken';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 4),
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4),
+                          child: Text(
+                            'Visible only in AnoChat — keep it anonymous.',
+                            style: TextStyle(fontSize: 11, color: _kSubtitle),
+                          ),
                         ),
                         const SizedBox(height: 14),
 
@@ -237,10 +373,12 @@ class _SignupScreenState extends State<SignupScreen> {
                             prefixIcon: Icons.email_outlined,
                           ),
                           validator: (v) {
-                            if (v == null || v.isEmpty)
+                            if (v == null || v.isEmpty) {
                               return 'Please enter your email';
-                            if (!v.contains('@'))
+                            }
+                            if (!v.contains('@')) {
                               return 'Please enter a valid email';
+                            }
                             return null;
                           },
                         ),
@@ -268,10 +406,12 @@ class _SignupScreenState extends State<SignupScreen> {
                             ),
                           ),
                           validator: (v) {
-                            if (v == null || v.isEmpty)
+                            if (v == null || v.isEmpty) {
                               return 'Please create a password';
-                            if (v.length < 6)
+                            }
+                            if (v.length < 6) {
                               return 'Password must be at least 6 characters';
+                            }
                             return null;
                           },
                         ),
@@ -301,10 +441,12 @@ class _SignupScreenState extends State<SignupScreen> {
                             ),
                           ),
                           validator: (v) {
-                            if (v == null || v.isEmpty)
+                            if (v == null || v.isEmpty) {
                               return 'Please confirm your password';
-                            if (v != _passwordController.text)
+                            }
+                            if (v != _passwordController.text) {
                               return 'Passwords do not match';
+                            }
                             return null;
                           },
                         ),
@@ -496,6 +638,64 @@ class _SignupScreenState extends State<SignupScreen> {
                                         color: Colors.white,
                                       ),
                                     ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // OR divider
+                        Row(
+                          children: [
+                            const Expanded(child: Divider(color: Color(0xFFB8D8EC))),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                'OR',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: _kSubtitle,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            const Expanded(child: Divider(color: Color(0xFFB8D8EC))),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Google sign-up button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: OutlinedButton(
+                            onPressed: _isLoading ? null : _signUpWithGoogle,
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(
+                                  color: Color(0xFFB8D8EC), width: 1.5),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              backgroundColor: Colors.white,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SvgPicture.asset(
+                                  'assets/images/google_logo.svg',
+                                  width: 22,
+                                  height: 22,
+                                ),
+                                const SizedBox(width: 10),
+                                const Text(
+                                  'Continue with Google',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: _kNavy,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
 import 'package:lumora_flutter/screens/login_screen.dart';
 
@@ -19,6 +20,27 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _authService = AuthService();
+  String? _username;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUsername();
+  }
+
+  Future<void> _loadUsername() async {
+    final uid = _authService.currentUser?.uid;
+    if (uid == null) return;
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
+    if (mounted && doc.exists) {
+      setState(() {
+        _username = doc.data()?['username'] as String?;
+      });
+    }
+  }
 
   Future<void> _logout() async {
     final confirm = await showDialog<bool>(
@@ -177,6 +199,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       email,
                       style: const TextStyle(fontSize: 14, color: _kSubtitle),
                     ),
+                    if (_username != null && _username!.isNotEmpty) ...
+                      [
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEEF5FB),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                                color: const Color(0xFFB8D8EC), width: 1),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.alternate_email,
+                                  size: 13, color: _kBlue),
+                              const SizedBox(width: 4),
+                              Text(
+                                _username!,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: _kBlue,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Text(
+                                '· AnoChat',
+                                style: TextStyle(
+                                    fontSize: 11, color: _kSubtitle),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.symmetric(

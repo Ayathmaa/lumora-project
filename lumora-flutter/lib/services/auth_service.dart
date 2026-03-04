@@ -1,15 +1,46 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   // Get current user
   User? get currentUser => _auth.currentUser;
 
   // Auth state changes stream
   Stream<User?> get authStateChanges => _auth.authStateChanges();
+
+  // Sign in with Google
+  Future<UserCredential> signInWithGoogle() async {
+    try {
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        throw 'Google sign-in was cancelled.';
+      }
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      return await _auth.signInWithCredential(credential);
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Check if a username is already taken
+  Future<bool> isUsernameTaken(String username) async {
+    final doc = await _firestore
+        .collection('usernames')
+        .doc(username.toLowerCase())
+        .get();
+    return doc.exists;
+  }
 
   // Sign in with email and password
   Future<UserCredential> signInWithEmailAndPassword({
@@ -49,19 +80,34 @@ class AuthService {
     required String uid,
     required String name,
     required String email,
+    required String username,
     String? ageGroup,
   }) async {
-    await _firestore.collection('users').doc(uid).set({
+    final batch = _firestore.batch();
+
+    final userRef = _firestore.collection('users').doc(uid);
+    batch.set(userRef, {
       'name': name,
       'email': email,
+      'username': username.toLowerCase(),
       'ageGroup': ageGroup ?? '',
       'createdAt': FieldValue.serverTimestamp(),
     });
+
+    final usernameRef = _firestore
+        .collection('usernames')
+        .doc(username.toLowerCase());
+    batch.set(usernameRef, {'uid': uid});
+
+    await batch.commit();
   }
 
   // Sign out
   Future<void> signOut() async {
-    await _auth.signOut();
+    await Future.wait([
+      _auth.signOut(),
+      _googleSignIn.signOut(),
+    ]);
   }
 
   // Send password reset email

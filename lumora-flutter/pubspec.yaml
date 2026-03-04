@@ -39,7 +39,9 @@ dependencies:
   firebase_core: ^3.8.1
   firebase_auth: ^5.3.3
   cloud_firestore: ^5.5.1
-  
+  google_sign_in: ^6.2.2
+  flutter_svg: ^2.0.10+1
+
   # UI utilities
   google_fonts: ^6.2.1
 
@@ -98,6 +100,7 @@ flutter:
     - assets/images/logo.png
     - assets/images/logo_v2.png
     - assets/images/appicon.png
+    - assets/images/google_logo.svg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
