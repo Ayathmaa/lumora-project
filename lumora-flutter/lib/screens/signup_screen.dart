@@ -168,9 +168,8 @@ class _SignupScreenState extends State<SignupScreen> {
       if (result.additionalUserInfo?.isNewUser == true) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
-            builder: (_) => GoogleProfileCompletionScreen(
-              googleUser: result.user!,
-            ),
+            builder:
+                (_) => GoogleProfileCompletionScreen(googleUser: result.user!),
           ),
           (route) => false,
         );
@@ -645,10 +644,13 @@ class _SignupScreenState extends State<SignupScreen> {
                         // OR divider
                         Row(
                           children: [
-                            const Expanded(child: Divider(color: Color(0xFFB8D8EC))),
+                            const Expanded(
+                              child: Divider(color: Color(0xFFB8D8EC)),
+                            ),
                             Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
                               child: Text(
                                 'OR',
                                 style: TextStyle(
@@ -658,7 +660,9 @@ class _SignupScreenState extends State<SignupScreen> {
                                 ),
                               ),
                             ),
-                            const Expanded(child: Divider(color: Color(0xFFB8D8EC))),
+                            const Expanded(
+                              child: Divider(color: Color(0xFFB8D8EC)),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -671,7 +675,9 @@ class _SignupScreenState extends State<SignupScreen> {
                             onPressed: _isLoading ? null : _signUpWithGoogle,
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(
-                                  color: Color(0xFFB8D8EC), width: 1.5),
+                                color: Color(0xFFB8D8EC),
+                                width: 1.5,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(30),
                               ),

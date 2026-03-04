@@ -94,10 +94,18 @@ class _GoogleProfileCompletionScreenState
       );
     }
     if (_isUsernameAvailable == true) {
-      return const Icon(Icons.check_circle_outline, color: Colors.green, size: 20);
+      return const Icon(
+        Icons.check_circle_outline,
+        color: Colors.green,
+        size: 20,
+      );
     }
     if (_isUsernameAvailable == false) {
-      return const Icon(Icons.cancel_outlined, color: Colors.redAccent, size: 20);
+      return const Icon(
+        Icons.cancel_outlined,
+        color: Colors.redAccent,
+        size: 20,
+      );
     }
     return const SizedBox.shrink();
   }
@@ -149,12 +157,13 @@ class _GoogleProfileCompletionScreenState
       hintText: hint,
       hintStyle: const TextStyle(color: _kIconHint, fontSize: 14),
       prefixIcon: Icon(prefixIcon, color: _kIconHint, size: 20),
-      suffixIcon: suffix != null
-          ? Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: suffix,
-            )
-          : null,
+      suffixIcon:
+          suffix != null
+              ? Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: suffix,
+              )
+              : null,
       suffixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
       filled: true,
       fillColor: _kFieldFill,
@@ -262,7 +271,9 @@ class _GoogleProfileCompletionScreenState
                           child: Text(
                             'Welcome, ${widget.googleUser.displayName?.split(' ').first ?? 'there'}! Set up your profile.',
                             style: const TextStyle(
-                                fontSize: 13, color: _kSubtitle),
+                              fontSize: 13,
+                              color: _kSubtitle,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -364,16 +375,17 @@ class _GoogleProfileCompletionScreenState
                               ),
                               dropdownColor: Colors.white,
                               borderRadius: BorderRadius.circular(16),
-                              items: _ageGroups
-                                  .map(
-                                    (g) => DropdownMenuItem(
-                                      value: g,
-                                      child: Text(g),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (v) =>
-                                  setState(() => _selectedAgeGroup = v),
+                              items:
+                                  _ageGroups
+                                      .map(
+                                        (g) => DropdownMenuItem(
+                                          value: g,
+                                          child: Text(g),
+                                        ),
+                                      )
+                                      .toList(),
+                              onChanged:
+                                  (v) => setState(() => _selectedAgeGroup = v),
                             ),
                           ),
                         ),
@@ -392,24 +404,27 @@ class _GoogleProfileCompletionScreenState
                               ),
                               elevation: 0,
                             ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
+                            child:
+                                _isLoading
+                                    ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                      ),
+                                    )
+                                    : const Text(
+                                      'Continue',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                  )
-                                : const Text(
-                                    'Continue',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
-                                  ),
                           ),
                         ),
                       ],

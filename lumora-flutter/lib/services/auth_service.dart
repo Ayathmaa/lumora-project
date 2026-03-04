@@ -35,10 +35,11 @@ class AuthService {
 
   // Check if a username is already taken
   Future<bool> isUsernameTaken(String username) async {
-    final doc = await _firestore
-        .collection('usernames')
-        .doc(username.toLowerCase())
-        .get();
+    final doc =
+        await _firestore
+            .collection('usernames')
+            .doc(username.toLowerCase())
+            .get();
     return doc.exists;
   }
 
@@ -104,10 +105,7 @@ class AuthService {
 
   // Sign out
   Future<void> signOut() async {
-    await Future.wait([
-      _auth.signOut(),
-      _googleSignIn.signOut(),
-    ]);
+    await Future.wait([_auth.signOut(), _googleSignIn.signOut()]);
   }
 
   // Send password reset email
