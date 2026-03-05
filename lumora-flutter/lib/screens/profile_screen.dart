@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
 import 'package:lumora_flutter/screens/login_screen.dart';
+import 'package:lumora_flutter/screens/upgrade_account_screen.dart';
 
 const _kBg = Color(0xFFC8DCF0);
 const _kNavy = Color(0xFF1A3A5C);
@@ -100,9 +101,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = _authService.currentUser;
+    final isAnonymous = user?.isAnonymous ?? false;
     final displayName =
-        user?.displayName?.isNotEmpty == true ? user!.displayName! : 'Aurora';
-    final email = user?.email ?? '';
+        isAnonymous
+            ? 'Guest'
+            : (user?.displayName?.isNotEmpty == true
+                ? user!.displayName!
+                : 'Aurora');
+    final email = isAnonymous ? '' : (user?.email ?? '');
     final initials =
         displayName
             .trim()
@@ -193,10 +199,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      email,
-                      style: const TextStyle(fontSize: 14, color: _kSubtitle),
-                    ),
+                    if (!isAnonymous)
+                      Text(
+                        email,
+                        style: const TextStyle(fontSize: 14, color: _kSubtitle),
+                      ),
                     if (_username != null && _username!.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Container(
@@ -277,6 +284,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+
+              // ── Upgrade banner (anonymous users only) ─────────────────────
+              if (isAnonymous) ...[
+                GestureDetector(
+                  onTap:
+                      () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const UpgradeAccountScreen(),
+                        ),
+                      ),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF6BAED4), Color(0xFF1A3A5C)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.person_add_outlined,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Create a full account',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Save your progress and access all features.',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xCCFFFFFF),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          color: Colors.white,
+                          size: 14,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
 
               // ── Stats row ─────────────────────────────────────────────────
               Row(

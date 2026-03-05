@@ -103,6 +103,69 @@ class AuthService {
     await batch.commit();
   }
 
+  // Upgrade anonymous account to email/password (links credential, keeps UID)
+  Future<void> upgradeAnonymousAccount({
+    required String uid,
+    required String name,
+    required String email,
+    required String password,
+    String? ageGroup,
+  }) async {
+    try {
+      final credential = EmailAuthProvider.credential(
+        email: email.trim(),
+        password: password,
+      );
+      // Link the anonymous user to an email/password credential
+      await _auth.currentUser!.linkWithCredential(credential);
+      // Update display name
+      await _auth.currentUser!.updateDisplayName(name.trim());
+      // Update Firestore: fill in the real details, remove isAnonymous flag
+      await _firestore.collection('users').doc(uid).update({
+        'name': name.trim(),
+        'email': email.trim(),
+        'ageGroup': ageGroup ?? '',
+        'isAnonymous': false,
+      });
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    }
+  }
+
+  // Sign in anonymously (guest)
+  Future<UserCredential> signInAnonymously() async {
+    try {
+      return await _auth.signInAnonymously();
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    }
+  }
+
+  // Save a minimal guest profile (username only)
+  Future<void> saveGuestProfile({
+    required String uid,
+    required String username,
+  }) async {
+    final batch = _firestore.batch();
+
+    final userRef = _firestore.collection('users').doc(uid);
+    batch.set(userRef, {
+      'name': 'Guest',
+      'email': '',
+      'username': username.toLowerCase(),
+      'ageGroup': '',
+      'isAnonymous': true,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    final usernameRef = _firestore
+        .collection('usernames')
+        .doc(username.toLowerCase());
+    batch.set(usernameRef, {'uid': uid});
+
+    await batch.commit();
+  }
+
   // Sign out
   Future<void> signOut() async {
     await Future.wait([_auth.signOut(), _googleSignIn.signOut()]);

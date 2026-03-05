@@ -88,9 +88,9 @@ class _GoogleProfileCompletionScreenState
   Widget _usernameStatusIcon() {
     if (_isCheckingUsername) {
       return const SizedBox(
-        width: 18,
-        height: 18,
-        child: CircularProgressIndicator(strokeWidth: 2, color: _kButton),
+        width: 10,
+        height: 10,
+        child: CircularProgressIndicator(strokeWidth: 3, color: _kButton),
       );
     }
     if (_isUsernameAvailable == true) {

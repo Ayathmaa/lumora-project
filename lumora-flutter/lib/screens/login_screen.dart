@@ -4,6 +4,7 @@ import 'package:lumora_flutter/services/auth_service.dart';
 import 'package:lumora_flutter/screens/signup_screen.dart';
 import 'package:lumora_flutter/screens/main_shell.dart';
 import 'package:lumora_flutter/screens/google_profile_completion_screen.dart';
+import 'package:lumora_flutter/screens/anonymous_username_screen.dart';
 
 // Design constants
 const _kNavy = Color(0xFF1A3A5C);
@@ -28,6 +29,25 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _rememberMe = false;
+
+  Future<void> _signInAnonymously() async {
+    setState(() => _isLoading = true);
+    try {
+      await _authService.signInAnonymously();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const AnonymousUsernameScreen()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        );
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -156,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
     );
   }
 
@@ -183,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
               key: _formKey,
               child: Column(
                 children: [
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 16),
 
                   // Logo
                   Image.asset(
@@ -195,7 +215,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // App name
                   Transform.translate(
-                    offset: const Offset(0, -35),
+                    offset: const Offset(0, -30),
                     child: const Text(
                       'Lumora',
                       style: TextStyle(
@@ -209,7 +229,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Tagline
                   Transform.translate(
-                    offset: const Offset(0, -35),
+                    offset: const Offset(0, -30),
                     child: const Text(
                       'Begin your healing journey.',
                       style: TextStyle(fontSize: 13, color: _kSubtitle),
@@ -220,7 +240,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // ── White card ──────────────────────────────────────
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
+                    padding: const EdgeInsets.fromLTRB(22, 20, 22, 20),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
@@ -253,7 +273,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: TextStyle(fontSize: 13, color: _kSubtitle),
                           ),
                         ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: 16),
 
                         // Email label
                         const Text(
@@ -284,7 +304,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
 
                         // Password label
                         const Text(
@@ -328,7 +348,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 10),
 
                         // Remember me + Forgot Password row
                         Row(
@@ -370,12 +390,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: 16),
 
                         // Log In button
                         SizedBox(
                           width: double.infinity,
-                          height: 52,
+                          height: 48,
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _signIn,
                             style: ElevatedButton.styleFrom(
@@ -439,7 +459,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         // Google sign-in button
                         SizedBox(
                           width: double.infinity,
-                          height: 52,
+                          height: 48,
                           child: OutlinedButton(
                             onPressed: _isLoading ? null : _signInWithGoogle,
                             style: OutlinedButton.styleFrom(
@@ -478,7 +498,38 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
 
                   // ── End card ────────────────────────────────────────
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 14),
+
+                  // Continue as Guest
+                  GestureDetector(
+                    onTap: _isLoading ? null : _signInAnonymously,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 11,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: _kButton, width: 1.5),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.person_outline, size: 16, color: _kButton),
+                          SizedBox(width: 8),
+                          Text(
+                            'Continue as Guest',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: _kButton,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
 
                   // Sign up link
                   Row(
