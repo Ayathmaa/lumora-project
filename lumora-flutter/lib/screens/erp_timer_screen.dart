@@ -1,12 +1,18 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
-const _kBg = Color(0xFFC8DCF0);
+const _kBg = Color(0xFFD0E4F4);
 const _kNavy = Color(0xFF1A3A5C);
 const _kSubtitle = Color(0xFF4A6FA5);
 const _kCardBg = Colors.white;
 const _kIconBg = Color(0xFFD6ECFA);
 const _kBlue = Color(0xFF6BAED4);
+
+class _Exercise {
+  final IconData icon;
+  final String label;
+  const _Exercise(this.icon, this.label);
+}
 
 class ErpTimerScreen extends StatefulWidget {
   const ErpTimerScreen({super.key});
@@ -17,20 +23,53 @@ class ErpTimerScreen extends StatefulWidget {
 
 class _ErpTimerScreenState extends State<ErpTimerScreen> {
   // Timer state
-  static const _presetMinutes = [5, 10, 15, 20, 30, 45];
+  static const _presets = [5, 10, 15, 20];
   int _selectedMinutes = 10;
   int _secondsRemaining = 10 * 60;
   bool _isRunning = false;
   bool _isPaused = false;
   Timer? _timer;
 
-  // Anxiety tracking
-  int _anxietyLevel = 5;
-  final List<_AnxietyPoint> _log = [];
+  // Anxiety levels
+  double _preAnxiety = 5;
+  double _postAnxiety = 5;
+
+  // Mindful exercise selection
+  String? _selectedExercise;
+
+  // Session reflection
+  final TextEditingController _reflectionCtrl = TextEditingController();
+  bool _resistedCompulsions = false;
+
+  // Difficulty & triggers
+  String? _selectedDifficulty;
+  final Set<String> _selectedTriggers = {};
+
+  // Streak
+  static const _streak = 7;
+  static const _streakGoal = 30;
+
+  static const _exercises = [
+    _Exercise(Icons.air, 'Breathing Exercise'),
+    _Exercise(Icons.headphones_outlined, 'Guided Meditation'),
+    _Exercise(Icons.eco_outlined, 'Grounding'),
+    _Exercise(Icons.show_chart_rounded, 'Body Scan'),
+  ];
+
+  static const _difficulties = ['Easy', 'Medium', 'Hard'];
+  static const _triggers = [
+    'Contamination',
+    'Checking',
+    'Social',
+    'Intrusive',
+    'Symmetry',
+    'Harm',
+  ];
 
   @override
   void dispose() {
     _timer?.cancel();
+    _reflectionCtrl.dispose();
     super.dispose();
   }
 
@@ -66,8 +105,19 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
   }
 
   void _resume() {
+    _timer?.cancel();
     setState(() => _isPaused = false);
-    _start();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (_secondsRemaining <= 0) {
+        _timer?.cancel();
+        setState(() {
+          _isRunning = false;
+          _isPaused = false;
+        });
+        return;
+      }
+      setState(() => _secondsRemaining--);
+    });
   }
 
   void _reset() {
@@ -79,19 +129,10 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
     });
   }
 
-  void _logAnxiety() {
-    setState(() {
-      _log.insert(
-        0,
-        _AnxietyPoint(
-          level: _anxietyLevel,
-          time: TimeOfDay.now().format(context),
-        ),
-      );
-    });
+  void _saveSession() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Anxiety level $_anxietyLevel/10 logged'),
+        content: const Text('Session saved!'),
         backgroundColor: _kBlue,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -105,7 +146,17 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
     return '$m:$s';
   }
 
-  double get _progress => 1 - (_secondsRemaining / (_selectedMinutes * 60));
+  double get _progress =>
+      _selectedMinutes == 0
+          ? 0
+          : 1 - (_secondsRemaining / (_selectedMinutes * 60));
+
+  String get _timerStatus {
+    if (_secondsRemaining == 0 && !_isRunning) return 'Done';
+    if (_isPaused) return 'Paused';
+    if (_isRunning) return 'Running';
+    return 'Ready';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -113,300 +164,645 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
       backgroundColor: _kBg,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Header ────────────────────────────────────────────────
-              Row(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: _kCardBg,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: _kNavy,
-                        size: 18,
-                      ),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
+              _buildSessionHeader(),
+              const SizedBox(height: 14),
+              _buildAnxietyCard(
+                'Pre Anxiety Level',
+                _preAnxiety,
+                (v) => setState(() => _preAnxiety = v),
+              ),
+              const SizedBox(height: 14),
+              _buildTimerCard(),
+              const SizedBox(height: 14),
+              _buildAnxietyCard(
+                'Post Anxiety Level',
+                _postAnxiety,
+                (v) => setState(() => _postAnxiety = v),
+              ),
+              const SizedBox(height: 14),
+              _buildMindfulExerciseCard(),
+              const SizedBox(height: 14),
+              _buildReflectionCard(),
+              const SizedBox(height: 20),
+              _buildSaveButton(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Session header ───────────────────────────────────────────────────────
+  Widget _buildSessionHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      decoration: BoxDecoration(
+        color: _kBlue,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(width: 14),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'ERP Timer',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: _kNavy,
-                        ),
-                      ),
-                      Text(
-                        'Exposure & Response Prevention',
-                        style: TextStyle(fontSize: 12, color: _kSubtitle),
-                      ),
-                    ],
+                  child: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: Colors.white,
+                    size: 16,
                   ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // ── Timer circle card ─────────────────────────────────────
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 32),
-                decoration: BoxDecoration(
-                  color: _kCardBg,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x10000000),
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    // Arc progress
-                    SizedBox(
-                      width: 180,
-                      height: 180,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          SizedBox.expand(
-                            child: CircularProgressIndicator(
-                              value: _progress,
-                              strokeWidth: 10,
-                              backgroundColor: _kIconBg,
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                _kBlue,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            _timeDisplay,
-                            style: const TextStyle(
-                              fontSize: 42,
-                              fontWeight: FontWeight.w800,
-                              color: _kNavy,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    // Controls
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Reset
-                        _CircleBtn(
-                          icon: Icons.refresh_rounded,
-                          onTap: _reset,
-                          bg: _kIconBg,
-                          fg: _kBlue,
-                        ),
-                        const SizedBox(width: 20),
-                        // Play / Pause
-                        _CircleBtn(
-                          icon:
-                              _isRunning && !_isPaused
-                                  ? Icons.pause_rounded
-                                  : Icons.play_arrow_rounded,
-                          onTap:
-                              _isRunning && !_isPaused
-                                  ? _pause
-                                  : (_isPaused ? _resume : _start),
-                          bg: _kBlue,
-                          fg: Colors.white,
-                          size: 64,
-                          iconSize: 30,
-                        ),
-                      ],
-                    ),
-                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-
-              // ── Duration presets ──────────────────────────────────────
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: _kCardBg,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x10000000),
-                      blurRadius: 8,
-                      offset: Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Duration',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: _kNavy,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children:
-                          _presetMinutes.map((m) {
-                            final active = m == _selectedMinutes;
-                            return GestureDetector(
-                              onTap: () => _selectPreset(m),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 160),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 18,
-                                  vertical: 9,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: active ? _kBlue : _kIconBg,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  '${m}m',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: active ? Colors.white : _kBlue,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // ── Anxiety tracker ───────────────────────────────────────
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: _kCardBg,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x10000000),
-                      blurRadius: 8,
-                      offset: Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Anxiety Level',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: _kNavy,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Current: $_anxietyLevel / 10',
-                      style: const TextStyle(fontSize: 12, color: _kSubtitle),
-                    ),
-                    Slider(
-                      value: _anxietyLevel.toDouble(),
-                      min: 1,
-                      max: 10,
-                      divisions: 9,
-                      activeColor: _kBlue,
-                      inactiveColor: _kIconBg,
-                      onChanged:
-                          (v) => setState(() => _anxietyLevel = v.round()),
-                    ),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 44,
-                      child: ElevatedButton(
-                        onPressed: _logAnxiety,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _kBlue,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'Log Anxiety Level',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ),
-
-                    // Mini log
-                    if (_log.isNotEmpty) ...[
-                      const SizedBox(height: 14),
-                      const Divider(color: Color(0xFFE8F0F8)),
-                      const SizedBox(height: 8),
-                      ..._log
-                          .take(3)
-                          .map(
-                            (p) => Padding(
-                              padding: const EdgeInsets.only(bottom: 6),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 28,
-                                    height: 28,
-                                    decoration: BoxDecoration(
-                                      color: _kIconBg,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        '${p.level}',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
-                                          color: _kBlue,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    'Level ${p.level}/10 at ${p.time}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: _kSubtitle,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                    ],
-                  ],
+              const SizedBox(width: 10),
+              const Icon(Icons.shield_outlined, color: Colors.white, size: 16),
+              const SizedBox(width: 8),
+              const Text(
+                'ERP Practice Session',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 4),
+          const Text(
+            'Stay with the feeling. Let it pass naturally.',
+            style: TextStyle(color: Colors.white70, fontSize: 11.5),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.local_fire_department_rounded,
+                    color: Colors.white,
+                    size: 15,
+                  ),
+                  const SizedBox(width: 4),
+                  const Text(
+                    'Day $_streak Streak',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const Text(
+                '$_streakGoal day goal',
+                style: TextStyle(color: Colors.white70, fontSize: 11.5),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: _streak / _streakGoal,
+              backgroundColor: Colors.white30,
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(Colors.white),
+              minHeight: 6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Anxiety level card ────────────────────────────────────────────────────
+  Widget _buildAnxietyCard(
+    String title,
+    double value,
+    ValueChanged<double> onChanged,
+  ) {
+    const labels = ['Calm', 'Mild', 'Moderate', 'High'];
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      decoration: BoxDecoration(
+        color: _kCardBg,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: _kNavy,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Center(
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: '${value.round()}',
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w700,
+                      color: _kNavy,
+                    ),
+                  ),
+                  const TextSpan(
+                    text: ' /10',
+                    style: TextStyle(fontSize: 16, color: _kSubtitle),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 5,
+              thumbShape:
+                  const RoundSliderThumbShape(enabledThumbRadius: 7),
+              overlayShape:
+                  const RoundSliderOverlayShape(overlayRadius: 14),
+              activeTrackColor: _kBlue,
+              inactiveTrackColor: _kIconBg,
+              thumbColor: _kBlue,
+              overlayColor: const Color(0x266BAED4),
+            ),
+            child: Slider(
+              value: value,
+              min: 1,
+              max: 10,
+              divisions: 9,
+              onChanged: onChanged,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: labels
+                  .map(
+                    (l) => Text(
+                      l,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: _kSubtitle,
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Timer card ────────────────────────────────────────────────────────────
+  Widget _buildTimerCard() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+      decoration: BoxDecoration(
+        color: _kCardBg,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              ..._presets.map((m) {
+                final active = m == _selectedMinutes;
+                return GestureDetector(
+                  onTap: () => _selectPreset(m),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: active ? _kBlue : _kIconBg,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '$m min',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: active ? Colors.white : _kBlue,
+                      ),
+                    ),
+                  ),
+                );
+              }),
+              GestureDetector(
+                onTap: () {},
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _kIconBg,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Custom',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: _kBlue,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 28),
+          SizedBox(
+            width: 152,
+            height: 152,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox.expand(
+                  child: CircularProgressIndicator(
+                    value: _isRunning ? _progress : 1,
+                    strokeWidth: _isRunning ? 3 : 1.5,
+                    backgroundColor:
+                        _isRunning ? _kIconBg : Colors.transparent,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      _isRunning ? _kBlue : const Color(0xFFCCCCCC),
+                    ),
+                  ),
+                ),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _timeDisplay,
+                      style: const TextStyle(
+                        fontSize: 34,
+                        fontWeight: FontWeight.w600,
+                        color: _kNavy,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _timerStatus,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: _kSubtitle,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _CircleBtn(
+                icon: Icons.refresh_rounded,
+                onTap: _reset,
+                bg: _kIconBg,
+                fg: _kBlue,
+              ),
+              const SizedBox(width: 20),
+              _CircleBtn(
+                icon: _isRunning && !_isPaused
+                    ? Icons.pause_rounded
+                    : Icons.play_arrow_rounded,
+                onTap: _isRunning && !_isPaused
+                    ? _pause
+                    : (_isPaused ? _resume : _start),
+                bg: _kBlue,
+                fg: Colors.white,
+                size: 64,
+                iconSize: 30,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Mindful exercise card ─────────────────────────────────────────────────
+  Widget _buildMindfulExerciseCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _kCardBg,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Add a Mindful Exercise',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: _kNavy,
+            ),
+          ),
+          const SizedBox(height: 14),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 2.5,
+            children: _exercises.map((e) {
+              final selected = _selectedExercise == e.label;
+              return GestureDetector(
+                onTap: () => setState(() {
+                  _selectedExercise = selected ? null : e.label;
+                }),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? const Color(0x266BAED4)
+                        : _kIconBg,
+                    borderRadius: BorderRadius.circular(14),
+                    border: selected
+                        ? Border.all(color: _kBlue, width: 1.5)
+                        : null,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(e.icon, color: _kBlue, size: 20),
+                      const SizedBox(height: 4),
+                      Text(
+                        e.label,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: _kNavy,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Reflection card ───────────────────────────────────────────────────────
+  Widget _buildReflectionCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _kCardBg,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Session Reflection',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: _kNavy,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'What did you notice during this session?',
+            style: TextStyle(fontSize: 12, color: _kSubtitle),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _reflectionCtrl,
+            maxLines: 4,
+            style: const TextStyle(fontSize: 13, color: _kNavy),
+            decoration: InputDecoration(
+              hintText: 'Describe what came up for you...',
+              hintStyle: const TextStyle(
+                color: Color(0xFFBBBBBB),
+                fontSize: 13,
+              ),
+              filled: true,
+              fillColor: const Color(0xFFEBF4FB),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.all(14),
+            ),
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () => setState(
+              () => _resistedCompulsions = !_resistedCompulsions,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: _resistedCompulsions
+                        ? _kBlue
+                        : Colors.transparent,
+                    border: Border.all(
+                      color: _resistedCompulsions
+                          ? _kBlue
+                          : const Color(0xFFCCCCCC),
+                      width: 1.5,
+                    ),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: _resistedCompulsions
+                      ? const Icon(Icons.check, color: Colors.white, size: 14)
+                      : null,
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'I resisted compulsions',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: _kNavy,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (_resistedCompulsions) ...[
+                  const SizedBox(width: 4),
+                  const Icon(Icons.check, color: _kBlue, size: 14),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Difficulty',
+            style: TextStyle(
+              fontSize: 12,
+              color: _kSubtitle,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _difficulties.map((d) {
+              final selected = _selectedDifficulty == d;
+              return GestureDetector(
+                onTap: () => setState(
+                  () => _selectedDifficulty = selected ? null : d,
+                ),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 130),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: selected ? _kBlue : _kIconBg,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    d,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: selected ? Colors.white : _kNavy,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Trigger Type',
+            style: TextStyle(
+              fontSize: 12,
+              color: _kSubtitle,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _triggers.map((t) {
+              final selected = _selectedTriggers.contains(t);
+              return GestureDetector(
+                onTap: () => setState(() {
+                  if (selected) {
+                    _selectedTriggers.remove(t);
+                  } else {
+                    _selectedTriggers.add(t);
+                  }
+                }),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 130),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: selected ? _kBlue : _kIconBg,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    t,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: selected ? Colors.white : _kNavy,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Save button ───────────────────────────────────────────────────────────
+  Widget _buildSaveButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: ElevatedButton(
+        onPressed: _saveSession,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _kBlue,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: const Text(
+          'Save Session',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -443,10 +839,4 @@ class _CircleBtn extends StatelessWidget {
       ),
     );
   }
-}
-
-class _AnxietyPoint {
-  final int level;
-  final String time;
-  const _AnxietyPoint({required this.level, required this.time});
 }
