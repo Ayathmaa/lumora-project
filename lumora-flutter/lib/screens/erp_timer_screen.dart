@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 const _kBg = Color(0xFFD0E4F4);
@@ -28,6 +30,7 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
   int _secondsRemaining = 10 * 60;
   bool _isRunning = false;
   bool _isPaused = false;
+  bool _sessionCompleted = false;
   Timer? _timer;
 
   // Anxiety levels
@@ -92,6 +95,7 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
         setState(() {
           _isRunning = false;
           _isPaused = false;
+          _sessionCompleted = true;
         });
         return;
       }
@@ -113,6 +117,7 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
         setState(() {
           _isRunning = false;
           _isPaused = false;
+          _sessionCompleted = true;
         });
         return;
       }
@@ -125,19 +130,122 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
     setState(() {
       _isRunning = false;
       _isPaused = false;
+      _sessionCompleted = false;
       _secondsRemaining = _selectedMinutes * 60;
     });
   }
 
-  void _saveSession() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Session saved!'),
-        backgroundColor: _kBlue,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+  Future<void> _saveSession() async {
+    // If the timer hasn't finished, ask for confirmation
+    if (!_sessionCompleted) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder:
+            (ctx) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Text(
+                'Session not finished',
+                style: TextStyle(
+                  color: _kNavy,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+              content: const Text(
+                "You haven't finished the session timer. If you proceed now the session will be saved as incomplete. Would you like to proceed?",
+                style: TextStyle(color: _kSubtitle, fontSize: 13, height: 1.5),
+              ),
+              actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              actions: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: _kNavy,
+                          side: const BorderSide(color: Color(0xFFCCCCCC)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text('No'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _kBlue,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: const Text('Yes'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+      );
+      if (proceed != true) return;
+    }
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final data = <String, dynamic>{
+      'session_complete': _sessionCompleted ? 1 : 0,
+      'duration_mins': _selectedMinutes,
+      'pre_anxiety': _preAnxiety.round(),
+      'post_anxiety': _postAnxiety.round(),
+      'difficulty': _selectedDifficulty,
+      'trigger_types': _selectedTriggers.toList(),
+      'timestamp': FieldValue.serverTimestamp(),
+    };
+
+    final reflection = _reflectionCtrl.text.trim();
+    if (reflection.isNotEmpty) {
+      data['reflection'] = reflection;
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('erp_sessions')
+          .add(data);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Session saved!'),
+          backgroundColor: _kBlue,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save session: $e'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
   }
 
   String get _timeDisplay {
@@ -183,8 +291,8 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
                 _postAnxiety,
                 (v) => setState(() => _postAnxiety = v),
               ),
-              const SizedBox(height: 14),
-              _buildMindfulExerciseCard(),
+              // const SizedBox(height: 14),
+              // _buildMindfulExerciseCard(),
               const SizedBox(height: 14),
               _buildReflectionCard(),
               const SizedBox(height: 20),
@@ -228,12 +336,35 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
               const SizedBox(width: 10),
               const Icon(Icons.shield_outlined, color: Colors.white, size: 16),
               const SizedBox(width: 8),
-              const Text(
-                'ERP Practice Session',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
+              const Expanded(
+                child: Text(
+                  'ERP Practice Session',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap:
+                    () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const _ErpSessionHistoryScreen(),
+                      ),
+                    ),
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.history_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
               ),
             ],
@@ -522,6 +653,7 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
   }
 
   // ── Mindful exercise card ─────────────────────────────────────────────────
+  // ignore: unused_element
   Widget _buildMindfulExerciseCard() {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -843,6 +975,293 @@ class _CircleBtn extends StatelessWidget {
         decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
         child: Icon(icon, color: fg, size: iconSize),
       ),
+    );
+  }
+}
+
+// ── Session History Screen ────────────────────────────────────────────────
+class _ErpSessionHistoryScreen extends StatelessWidget {
+  const _ErpSessionHistoryScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    return Scaffold(
+      backgroundColor: _kBg,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: _kCardBg,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: _kNavy,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  const Text(
+                    'Session History',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: _kNavy,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // List
+            Expanded(
+              child:
+                  uid == null
+                      ? const Center(child: Text('Not signed in'))
+                      : StreamBuilder<QuerySnapshot>(
+                        stream:
+                            FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(uid)
+                                .collection('erp_sessions')
+                                .orderBy('timestamp', descending: true)
+                                .snapshots(),
+                        builder: (context, snap) {
+                          if (snap.connectionState == ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(color: _kBlue),
+                            );
+                          }
+                          final docs = snap.data?.docs ?? [];
+                          if (docs.isEmpty) {
+                            return const Center(
+                              child: Text(
+                                'No sessions yet.',
+                                style: TextStyle(color: _kSubtitle),
+                              ),
+                            );
+                          }
+                          return ListView.separated(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                            itemCount: docs.length,
+                            separatorBuilder:
+                                (_, __) => const SizedBox(height: 10),
+                            itemBuilder: (context, i) {
+                              final d = docs[i].data() as Map<String, dynamic>;
+                              final ts = d['timestamp'] as Timestamp?;
+                              final date =
+                                  ts != null ? _formatDate(ts.toDate()) : '—';
+                              final complete =
+                                  (d['session_complete'] as int? ?? 0) == 1;
+                              final triggers =
+                                  (d['trigger_types'] as List?)
+                                      ?.cast<String>() ??
+                                  [];
+                              return Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: _kCardBg,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0x0A000000),
+                                      blurRadius: 6,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          date,
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: _kNavy,
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                complete
+                                                    ? const Color(0xFFD6F0E0)
+                                                    : const Color(0xFFFFE4E4),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            complete
+                                                ? 'Completed'
+                                                : 'Incomplete',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color:
+                                                  complete
+                                                      ? const Color(0xFF2E7D52)
+                                                      : const Color(0xFFB02020),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      children: [
+                                        _HistoryStat(
+                                          label: 'Duration',
+                                          value:
+                                              '${d['duration_mins'] ?? '—'} min',
+                                        ),
+                                        const SizedBox(width: 16),
+                                        _HistoryStat(
+                                          label: 'Pre',
+                                          value:
+                                              '${d['pre_anxiety'] ?? '—'}/10',
+                                        ),
+                                        const SizedBox(width: 16),
+                                        _HistoryStat(
+                                          label: 'Post',
+                                          value:
+                                              '${d['post_anxiety'] ?? '—'}/10',
+                                        ),
+                                        if (d['difficulty'] != null) ...[
+                                          const SizedBox(width: 16),
+                                          _HistoryStat(
+                                            label: 'Difficulty',
+                                            value: d['difficulty'] as String,
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    if (triggers.isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 6,
+                                        children:
+                                            triggers
+                                                .map(
+                                                  (t) => Container(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 10,
+                                                          vertical: 4,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: _kIconBg,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            20,
+                                                          ),
+                                                    ),
+                                                    child: Text(
+                                                      t,
+                                                      style: const TextStyle(
+                                                        fontSize: 11,
+                                                        color: _kBlue,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                )
+                                                .toList(),
+                                      ),
+                                    ],
+                                    if ((d['reflection'] as String?)
+                                            ?.isNotEmpty ==
+                                        true) ...[
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        d['reflection'] as String,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: _kSubtitle,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime dt) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '${dt.day} ${months[dt.month - 1]} ${dt.year}  $h:$m';
+  }
+}
+
+class _HistoryStat extends StatelessWidget {
+  final String label;
+  final String value;
+  const _HistoryStat({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 10, color: _kSubtitle)),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: _kNavy,
+          ),
+        ),
+      ],
     );
   }
 }
