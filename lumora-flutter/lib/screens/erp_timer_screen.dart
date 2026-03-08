@@ -277,8 +277,7 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
             child: LinearProgressIndicator(
               value: _streak / _streakGoal,
               backgroundColor: Colors.white30,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(Colors.white),
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
               minHeight: 6,
             ),
           ),
@@ -343,10 +342,8 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
               trackHeight: 5,
-              thumbShape:
-                  const RoundSliderThumbShape(enabledThumbRadius: 7),
-              overlayShape:
-                  const RoundSliderOverlayShape(overlayRadius: 14),
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
               activeTrackColor: _kBlue,
               inactiveTrackColor: _kIconBg,
               thumbColor: _kBlue,
@@ -364,17 +361,18 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: labels
-                  .map(
-                    (l) => Text(
-                      l,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: _kSubtitle,
-                      ),
-                    ),
-                  )
-                  .toList(),
+              children:
+                  labels
+                      .map(
+                        (l) => Text(
+                          l,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: _kSubtitle,
+                          ),
+                        ),
+                      )
+                      .toList(),
             ),
           ),
         ],
@@ -463,8 +461,7 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
                   child: CircularProgressIndicator(
                     value: _isRunning ? _progress : 1,
                     strokeWidth: _isRunning ? 3 : 1.5,
-                    backgroundColor:
-                        _isRunning ? _kIconBg : Colors.transparent,
+                    backgroundColor: _isRunning ? _kIconBg : Colors.transparent,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       _isRunning ? _kBlue : const Color(0xFFCCCCCC),
                     ),
@@ -485,10 +482,7 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
                     const SizedBox(height: 2),
                     Text(
                       _timerStatus,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: _kSubtitle,
-                      ),
+                      style: const TextStyle(fontSize: 12, color: _kSubtitle),
                     ),
                   ],
                 ),
@@ -507,12 +501,14 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
               ),
               const SizedBox(width: 20),
               _CircleBtn(
-                icon: _isRunning && !_isPaused
-                    ? Icons.pause_rounded
-                    : Icons.play_arrow_rounded,
-                onTap: _isRunning && !_isPaused
-                    ? _pause
-                    : (_isPaused ? _resume : _start),
+                icon:
+                    _isRunning && !_isPaused
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
+                onTap:
+                    _isRunning && !_isPaused
+                        ? _pause
+                        : (_isPaused ? _resume : _start),
                 bg: _kBlue,
                 fg: Colors.white,
                 size: 64,
@@ -559,42 +555,43 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
             childAspectRatio: 2.5,
-            children: _exercises.map((e) {
-              final selected = _selectedExercise == e.label;
-              return GestureDetector(
-                onTap: () => setState(() {
-                  _selectedExercise = selected ? null : e.label;
-                }),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? const Color(0x266BAED4)
-                        : _kIconBg,
-                    borderRadius: BorderRadius.circular(14),
-                    border: selected
-                        ? Border.all(color: _kBlue, width: 1.5)
-                        : null,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(e.icon, color: _kBlue, size: 20),
-                      const SizedBox(height: 4),
-                      Text(
-                        e.label,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: _kNavy,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        textAlign: TextAlign.center,
+            children:
+                _exercises.map((e) {
+                  final selected = _selectedExercise == e.label;
+                  return GestureDetector(
+                    onTap:
+                        () => setState(() {
+                          _selectedExercise = selected ? null : e.label;
+                        }),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      decoration: BoxDecoration(
+                        color: selected ? const Color(0x266BAED4) : _kIconBg,
+                        borderRadius: BorderRadius.circular(14),
+                        border:
+                            selected
+                                ? Border.all(color: _kBlue, width: 1.5)
+                                : null,
                       ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(e.icon, color: _kBlue, size: 20),
+                          const SizedBox(height: 4),
+                          Text(
+                            e.label,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: _kNavy,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
           ),
         ],
       ),
@@ -654,29 +651,34 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
           ),
           const SizedBox(height: 12),
           GestureDetector(
-            onTap: () => setState(
-              () => _resistedCompulsions = !_resistedCompulsions,
-            ),
+            onTap:
+                () => setState(
+                  () => _resistedCompulsions = !_resistedCompulsions,
+                ),
             child: Row(
               children: [
                 Container(
                   width: 20,
                   height: 20,
                   decoration: BoxDecoration(
-                    color: _resistedCompulsions
-                        ? _kBlue
-                        : Colors.transparent,
+                    color: _resistedCompulsions ? _kBlue : Colors.transparent,
                     border: Border.all(
-                      color: _resistedCompulsions
-                          ? _kBlue
-                          : const Color(0xFFCCCCCC),
+                      color:
+                          _resistedCompulsions
+                              ? _kBlue
+                              : const Color(0xFFCCCCCC),
                       width: 1.5,
                     ),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: _resistedCompulsions
-                      ? const Icon(Icons.check, color: Colors.white, size: 14)
-                      : null,
+                  child:
+                      _resistedCompulsions
+                          ? const Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: 14,
+                          )
+                          : null,
                 ),
                 const SizedBox(width: 10),
                 const Text(
@@ -707,33 +709,35 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _difficulties.map((d) {
-              final selected = _selectedDifficulty == d;
-              return GestureDetector(
-                onTap: () => setState(
-                  () => _selectedDifficulty = selected ? null : d,
-                ),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 130),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: selected ? _kBlue : _kIconBg,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    d,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: selected ? Colors.white : _kNavy,
+            children:
+                _difficulties.map((d) {
+                  final selected = _selectedDifficulty == d;
+                  return GestureDetector(
+                    onTap:
+                        () => setState(
+                          () => _selectedDifficulty = selected ? null : d,
+                        ),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 130),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selected ? _kBlue : _kIconBg,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        d,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: selected ? Colors.white : _kNavy,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              );
-            }).toList(),
+                  );
+                }).toList(),
           ),
           const SizedBox(height: 14),
           const Text(
@@ -748,37 +752,39 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _triggers.map((t) {
-              final selected = _selectedTriggers.contains(t);
-              return GestureDetector(
-                onTap: () => setState(() {
-                  if (selected) {
-                    _selectedTriggers.remove(t);
-                  } else {
-                    _selectedTriggers.add(t);
-                  }
-                }),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 130),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: selected ? _kBlue : _kIconBg,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    t,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: selected ? Colors.white : _kNavy,
+            children:
+                _triggers.map((t) {
+                  final selected = _selectedTriggers.contains(t);
+                  return GestureDetector(
+                    onTap:
+                        () => setState(() {
+                          if (selected) {
+                            _selectedTriggers.remove(t);
+                          } else {
+                            _selectedTriggers.add(t);
+                          }
+                        }),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 130),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selected ? _kBlue : _kIconBg,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        t,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: selected ? Colors.white : _kNavy,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              );
-            }).toList(),
+                  );
+                }).toList(),
           ),
         ],
       ),
