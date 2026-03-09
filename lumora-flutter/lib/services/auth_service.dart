@@ -164,6 +164,15 @@ class AuthService {
     batch.set(usernameRef, {'uid': uid});
 
     await batch.commit();
+    // Store username in Firebase Auth displayName so home screen
+    // doesn't need a Firestore read on every launch.
+    await _auth.currentUser?.updateDisplayName(username.trim());
+  }
+
+  // Fetch username from Firestore for the given uid
+  Future<String?> getUsername(String uid) async {
+    final doc = await _firestore.collection('users').doc(uid).get();
+    return doc.data()?['username'] as String?;
   }
 
   // Sign out

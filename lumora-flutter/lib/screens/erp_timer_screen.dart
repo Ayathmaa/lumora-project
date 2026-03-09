@@ -31,6 +31,7 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
   bool _isRunning = false;
   bool _isPaused = false;
   bool _sessionCompleted = false;
+  bool _sessionSaved = false;
   Timer? _timer;
 
   // Anxiety levels
@@ -131,11 +132,14 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
       _isRunning = false;
       _isPaused = false;
       _sessionCompleted = false;
+      _sessionSaved = false;
       _secondsRemaining = _selectedMinutes * 60;
     });
   }
 
   Future<void> _saveSession() async {
+    if (_sessionSaved) return; // prevent double-submit
+
     // If the timer hasn't finished, ask for confirmation
     if (!_sessionCompleted) {
       final proceed = await showDialog<bool>(
@@ -223,6 +227,7 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
           .add(data);
 
       if (!mounted) return;
+      setState(() => _sessionSaved = true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Session saved!'),
@@ -929,18 +934,18 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
       width: double.infinity,
       height: 52,
       child: ElevatedButton(
-        onPressed: _saveSession,
+        onPressed: _sessionSaved ? null : _saveSession,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _kBlue,
-          foregroundColor: Colors.white,
+          backgroundColor: _sessionSaved ? Colors.grey.shade300 : _kBlue,
+          foregroundColor: _sessionSaved ? Colors.grey.shade500 : Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
         ),
-        child: const Text(
-          'Save Session',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        child: Text(
+          _sessionSaved ? 'Session Saved' : 'Save Session',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
     );

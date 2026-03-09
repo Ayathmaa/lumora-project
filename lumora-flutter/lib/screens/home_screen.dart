@@ -29,14 +29,49 @@ class _HomeScreenState extends State<HomeScreen> {
   final _authService = AuthService();
 
   int? _selectedMood; // 0 = saddest … 4 = happiest
+  String? _anonUsername;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = _authService.currentUser;
+    if (user != null && user.isAnonymous) {
+      if (user.displayName?.isNotEmpty == true) {
+        // Already cached in Firebase Auth — no Firestore round-trip needed.
+        _anonUsername = user.displayName;
+      } else {
+        // Older guest accounts: fetch from Firestore then cache in Auth.
+        _authService
+            .getUsername(user.uid)
+            .then((name) async {
+              if (!mounted || name == null) return;
+              setState(() => _anonUsername = name);
+              // Patch displayName so future launches are instant.
+              try {
+                await user.updateDisplayName(name);
+              } catch (_) {}
+            })
+            .catchError((e) {
+              debugPrint('HomeScreen: could not load guest username – $e');
+            });
+      }
+    }
+  }
 
   // ── build ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final user = _authService.currentUser;
-    final displayName =
-        (user?.displayName?.isNotEmpty == true ? user!.displayName! : 'Aurora')
-            .toUpperCase();
+    final String displayName;
+    if (user != null && user.isAnonymous) {
+      displayName = (_anonUsername ?? '...').toUpperCase();
+    } else {
+      displayName =
+          (user?.displayName?.isNotEmpty == true
+                  ? user!.displayName!
+                  : 'Aurora')
+              .toUpperCase();
+    }
 
     return Scaffold(
       backgroundColor: _kBg,
