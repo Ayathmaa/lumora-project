@@ -633,7 +633,7 @@ class _MindfulScreenState extends State<MindfulScreen> {
     final stats = _selectedHabitStats;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 28, 20),
       decoration: BoxDecoration(
         color: _kBlue,
         borderRadius: BorderRadius.circular(20),
@@ -722,7 +722,8 @@ class _MindfulScreenState extends State<MindfulScreen> {
               value: selectedHabit?.id,
               isExpanded: true,
               iconEnabledColor: Colors.white,
-              dropdownColor: Colors.white,
+              dropdownColor: _kNavy,
+              borderRadius: BorderRadius.circular(14),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.white.withValues(alpha: 0.18),
@@ -736,7 +737,7 @@ class _MindfulScreenState extends State<MindfulScreen> {
                 ),
               ),
               style: const TextStyle(
-                color: _kNavy,
+                color: Colors.white,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
@@ -744,7 +745,14 @@ class _MindfulScreenState extends State<MindfulScreen> {
                   _habits.map((habit) {
                     return DropdownMenuItem<String>(
                       value: habit.id,
-                      child: Text(habit.name),
+                      child: Text(
+                        habit.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     );
                   }).toList(),
               selectedItemBuilder:
