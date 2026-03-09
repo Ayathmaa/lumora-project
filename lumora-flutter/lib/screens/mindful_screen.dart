@@ -217,9 +217,9 @@ class _MindfulScreenState extends State<MindfulScreen> {
                                       padding: const EdgeInsets.only(top: 2),
                                       child: Icon(
                                         isSelected
-                                            ? Icons.check_circle_rounded
-                                            : Icons.circle,
-                                        size: isSelected ? 18 : 10,
+                                            ? Icons.radio_button_checked
+                                            : Icons.radio_button_unchecked,
+                                        size: 20,
                                         color: isSelected ? _kBlue : _kSubtitle,
                                       ),
                                     ),
