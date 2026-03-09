@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 
 // ── colour palette ──────────────────────────────────────────────────────────
-const _kBg = Color(0xFFF2F6FA);
+const _kBg = Color(0xFFD0E4F4);
 const _kNavy = Color(0xFF1A3A5C);
 const _kSubtitle = Color(0xFF4A6FA5);
 const _kCardBg = Colors.white;
 const _kBlue = Color(0xFF6BAED4);
-const _kHeaderBg = Color(0xFF7BB8D4);
 const _kChipBg = Color(0xFFDEECF8);
 const _kStatBg = Color(0xFFEFF5FB);
 // ────────────────────────────────────────────────────────────────────────────
@@ -94,90 +93,88 @@ class _MindfulScreenState extends State<MindfulScreen> {
   // ── Header card ───────────────────────────────────────────────────────────
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       decoration: BoxDecoration(
-        color: _kHeaderBg,
-        borderRadius: BorderRadius.circular(24),
+        color: _kBlue,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.25),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: Colors.white,
-                size: 16,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
           Row(
-            children: const [
-              Text(
-                'Mindful Space',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: Colors.white,
+                    size: 16,
+                  ),
                 ),
               ),
-              SizedBox(width: 8),
-              Text('🌿', style: TextStyle(fontSize: 20)),
+              const SizedBox(width: 10),
+              const Text('🌿', style: TextStyle(fontSize: 16)),
+              const SizedBox(width: 6),
+              const Expanded(
+                child: Text(
+                  'Mindful Space',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 4),
           const Text(
             'Small practices. Big change.',
-            style: TextStyle(fontSize: 13, color: Colors.white70),
+            style: TextStyle(color: Colors.white70, fontSize: 11.5),
           ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Text(
-                      '7 Day Mindful Streak',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Icon(
-                      Icons.auto_awesome_rounded,
-                      color: Colors.white70,
-                      size: 18,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: 7 / 30,
-                    minHeight: 8,
-                    backgroundColor: Colors.white.withValues(alpha: 0.3),
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      Colors.white,
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Row(
+                children: [
+                  Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Colors.white,
+                    size: 15,
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    '7 Day Mindful Streak',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
+              Text(
+                '30 day goal',
+                style: TextStyle(color: Colors.white70, fontSize: 11.5),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: 7 / 30,
+              backgroundColor: Colors.white30,
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+              minHeight: 6,
             ),
           ),
         ],
@@ -195,15 +192,15 @@ class _MindfulScreenState extends State<MindfulScreen> {
           child: Text(
             'Meditations',
             style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
               color: _kNavy,
             ),
           ),
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 185,
+          height: 195,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: _meditations.length,
@@ -236,8 +233,8 @@ class _MindfulScreenState extends State<MindfulScreen> {
           const Text(
             'Breathing Exercises',
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
               color: _kNavy,
             ),
           ),
@@ -289,8 +286,8 @@ class _MindfulScreenState extends State<MindfulScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: _kHeaderBg,
-        borderRadius: BorderRadius.circular(24),
+        color: _kBlue,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -298,8 +295,8 @@ class _MindfulScreenState extends State<MindfulScreen> {
           const Text(
             'Habit Freedom Tracker',
             style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
           ),
@@ -396,7 +393,7 @@ class _MindfulScreenState extends State<MindfulScreen> {
                       isChecked
                           ? const Icon(
                             Icons.check_rounded,
-                            color: _kHeaderBg,
+                            color: _kBlue,
                             size: 16,
                           )
                           : Center(
@@ -442,8 +439,8 @@ class _MindfulScreenState extends State<MindfulScreen> {
           const Text(
             'Your Mindful Growth',
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
               color: _kNavy,
             ),
           ),
@@ -454,7 +451,7 @@ class _MindfulScreenState extends State<MindfulScreen> {
             physics: const NeverScrollableScrollPhysics(),
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            childAspectRatio: 1.35,
+            childAspectRatio: 1.2,
             children: const [
               _GrowthStat(
                 icon: Icons.timer_outlined,
@@ -510,6 +507,7 @@ class _MindfulScreenState extends State<MindfulScreen> {
               color: _kNavy,
             ),
           ),
+          const SizedBox(height: 2),
           const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -571,7 +569,7 @@ class _MeditationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 128,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
       decoration: BoxDecoration(
         color: _kCardBg,
         borderRadius: BorderRadius.circular(20),
@@ -587,24 +585,25 @@ class _MeditationCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 46,
+            height: 46,
             decoration: BoxDecoration(
               color: meditation.color.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: Icon(meditation.icon, color: meditation.color, size: 24),
+            child: Icon(meditation.icon, color: meditation.color, size: 22),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 7),
           Text(
             meditation.title,
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 11.5,
               fontWeight: FontWeight.w700,
               color: _kNavy,
+              height: 1.3,
             ),
           ),
           const SizedBox(height: 4),
@@ -612,7 +611,7 @@ class _MeditationCard extends StatelessWidget {
             meditation.duration,
             style: const TextStyle(fontSize: 11, color: _kSubtitle),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 7),
           Container(
             width: 28,
             height: 28,
@@ -677,7 +676,7 @@ class _GrowthStat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
       decoration: BoxDecoration(
         color: _kStatBg,
         borderRadius: BorderRadius.circular(16),
@@ -685,12 +684,12 @@ class _GrowthStat extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: _kBlue, size: 22),
-          const SizedBox(height: 6),
+          Icon(icon, color: _kBlue, size: 20),
+          const SizedBox(height: 5),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.w800,
               color: _kNavy,
             ),
@@ -699,7 +698,13 @@ class _GrowthStat extends StatelessWidget {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 10, color: _kSubtitle),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 10,
+              color: _kSubtitle,
+              height: 1.2,
+            ),
           ),
         ],
       ),
