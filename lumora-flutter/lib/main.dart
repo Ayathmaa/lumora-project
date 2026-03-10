@@ -5,6 +5,22 @@ import 'package:lumora_flutter/services/auth_service.dart';
 import 'package:lumora_flutter/screens/login_screen.dart';
 import 'package:lumora_flutter/screens/main_shell.dart';
 
+/// A [PageTransitionsBuilder] that applies no transition animation.
+class _NoTransitionBuilder extends PageTransitionsBuilder {
+  const _NoTransitionBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child;
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -22,6 +38,16 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF7AB5D8)),
         useMaterial3: true,
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: _NoTransitionBuilder(),
+            TargetPlatform.iOS: _NoTransitionBuilder(),
+            TargetPlatform.fuchsia: _NoTransitionBuilder(),
+            TargetPlatform.linux: _NoTransitionBuilder(),
+            TargetPlatform.macOS: _NoTransitionBuilder(),
+            TargetPlatform.windows: _NoTransitionBuilder(),
+          },
+        ),
       ),
       home: const AuthWrapper(),
     );
