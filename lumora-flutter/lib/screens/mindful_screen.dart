@@ -4,6 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'breathing/box_breathing_screen.dart';
+import 'breathing/panic_reset_screen.dart';
+import 'breathing/relaxation_478_screen.dart';
+import 'breathing/slow_deep_breathing_screen.dart';
+
 const _kBg = Color(0xFFD0E4F4);
 const _kNavy = Color(0xFF1A3A5C);
 const _kSubtitle = Color(0xFF4A6FA5);
@@ -77,6 +82,24 @@ class _MindfulScreenState extends State<MindfulScreen> {
     'Slow Deep Breathing',
     'Panic Reset Breath',
   ];
+
+  void _openBreathing(String label) {
+    final Widget? screen = switch (label) {
+      '4-4-4-4 Box Breathing' => const BoxBreathingScreen(),
+      '4-7-8 Relaxation' => const Relaxation478Screen(),
+      'Slow Deep Breathing' => const SlowDeepBreathingScreen(),
+      'Panic Reset Breath' => const PanicResetScreen(),
+      _ => null,
+    };
+    if (screen == null) return;
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        pageBuilder: (_, __, ___) => screen,
+      ),
+    );
+  }
 
   User? get _user => FirebaseAuth.instance.currentUser;
 
@@ -721,7 +744,7 @@ class _MindfulScreenState extends State<MindfulScreen> {
             children:
                 _breathingExercises.map((label) {
                   return GestureDetector(
-                    onTap: () {},
+                    onTap: () => _openBreathing(label),
                     child: Container(
                       alignment: Alignment.center,
                       padding: const EdgeInsets.symmetric(horizontal: 8),
