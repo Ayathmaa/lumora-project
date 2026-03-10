@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -39,6 +41,8 @@ class _MindfulScreenState extends State<MindfulScreen> {
   bool _didPromptForHabit = false;
   List<_HabitTracker> _habits = const [];
   String? _selectedHabitId;
+  final _dropdownKey = GlobalKey();
+  OverlayEntry? _dropdownOverlay;
 
   static const _meditations = [
     _Meditation(
@@ -107,6 +111,7 @@ class _MindfulScreenState extends State<MindfulScreen> {
 
   @override
   void dispose() {
+    _hideHabitSwitcher();
     _noteCtrl.dispose();
     super.dispose();
   }
@@ -379,6 +384,102 @@ class _MindfulScreenState extends State<MindfulScreen> {
         setState(() => _isHabitSaving = false);
       }
     }
+  }
+
+  void _showHabitSwitcher() {
+    if (_dropdownOverlay != null) {
+      _hideHabitSwitcher();
+      return;
+    }
+    final renderBox =
+        _dropdownKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    final offset = renderBox.localToGlobal(Offset.zero);
+    final size = renderBox.size;
+
+    _dropdownOverlay = OverlayEntry(
+      builder: (ctx) {
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: _hideHabitSwitcher,
+          child: Stack(
+            children: [
+              Positioned(
+                left: offset.dx,
+                top: offset.dy + size.height + 4,
+                width: size.width,
+                child: Material(
+                  color: Colors.transparent,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children:
+                              _habits.map((habit) {
+                                final isSelected = habit.id == _selectedHabitId;
+                                return InkWell(
+                                  onTap: () {
+                                    setState(() => _selectedHabitId = habit.id);
+                                    _hideHabitSwitcher();
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 13,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            habit.name,
+                                            style: TextStyle(
+                                              color:
+                                                  isSelected
+                                                      ? _kNavy
+                                                      : _kSubtitle,
+                                              fontSize: 14,
+                                              fontWeight:
+                                                  isSelected
+                                                      ? FontWeight.w700
+                                                      : FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                        if (isSelected)
+                                          const Icon(
+                                            Icons.check_rounded,
+                                            color: _kBlue,
+                                            size: 18,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    Overlay.of(context).insert(_dropdownOverlay!);
+  }
+
+  void _hideHabitSwitcher() {
+    _dropdownOverlay?.remove();
+    _dropdownOverlay = null;
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
@@ -718,67 +819,38 @@ class _MindfulScreenState extends State<MindfulScreen> {
               ),
             )
           else ...[
-            DropdownButtonFormField<String>(
-              value: selectedHabit?.id,
-              isExpanded: true,
-              iconEnabledColor: Colors.white,
-              dropdownColor: _kNavy,
-              borderRadius: BorderRadius.circular(14),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.18),
-                contentPadding: const EdgeInsets.symmetric(
+            GestureDetector(
+              onTap: _isHabitSaving ? null : _showHabitSwitcher,
+              child: Container(
+                key: _dropdownKey,
+                padding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 12,
                 ),
-                border: OutlineInputBorder(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
                 ),
-              ),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-              items:
-                  _habits.map((habit) {
-                    return DropdownMenuItem<String>(
-                      value: habit.id,
+                child: Row(
+                  children: [
+                    Expanded(
                       child: Text(
-                        habit.name,
+                        selectedHabit?.name ?? '',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                    );
-                  }).toList(),
-              selectedItemBuilder:
-                  (context) =>
-                      _habits
-                          .map(
-                            (habit) => Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                habit.name,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          )
-                          .toList(),
-              onChanged:
-                  _isHabitSaving
-                      ? null
-                      : (value) {
-                        if (value == null) return;
-                        setState(() => _selectedHabitId = value);
-                      },
+                    ),
+                    const Icon(
+                      Icons.arrow_drop_down_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 14),
             _buildHabitInfoCard(
