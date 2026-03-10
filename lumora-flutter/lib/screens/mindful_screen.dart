@@ -367,22 +367,41 @@ class _MindfulScreenState extends State<MindfulScreen> {
     final dateKey = _dateKey(date);
     if (habit.markedDates.contains(dateKey)) return;
 
-    setState(() => _isHabitSaving = true);
+    // Optimistic update — mark instantly in local state
+    setState(() {
+      _habits =
+          _habits.map((h) {
+            if (h.id != habit.id) return h;
+            return _HabitTracker(
+              id: h.id,
+              name: h.name,
+              normalizedName: h.normalizedName,
+              markedDates: [...h.markedDates, dateKey]..sort(),
+            );
+          }).toList();
+    });
+
     try {
       await collection.doc(habit.id).update({
         'markedDates': FieldValue.arrayUnion([dateKey]),
         'updatedAt': FieldValue.serverTimestamp(),
       });
-
-      if (!mounted) return;
-      await _loadHabitTrackers(promptIfEmpty: false);
     } catch (e) {
+      // Revert on failure
       if (!mounted) return;
+      setState(() {
+        _habits =
+            _habits.map((h) {
+              if (h.id != habit.id) return h;
+              return _HabitTracker(
+                id: h.id,
+                name: h.name,
+                normalizedName: h.normalizedName,
+                markedDates: h.markedDates.where((d) => d != dateKey).toList(),
+              );
+            }).toList();
+      });
       _showSnackBar('Could not save this day: $e', isError: true);
-    } finally {
-      if (mounted) {
-        setState(() => _isHabitSaving = false);
-      }
     }
   }
 
