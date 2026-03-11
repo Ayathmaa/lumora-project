@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import '../services/erp_timer_service.dart';
 
 const _kBg = Color(0xFFD0E4F4);
 const _kNavy = Color(0xFF1A3A5C);
@@ -52,6 +52,8 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
   // Streak
   static const _streak = 7;
   static const _streakGoal = 30;
+
+  final _erpService = ErpTimerService();
 
   static const _exercises = [
     _Exercise(Icons.air, 'Breathing Exercise'),
@@ -201,30 +203,19 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
       if (proceed != true) return;
     }
 
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-
-    final data = <String, dynamic>{
-      'session_complete': _sessionCompleted ? 1 : 0,
-      'duration_mins': _selectedMinutes,
-      'pre_anxiety': _preAnxiety.round(),
-      'post_anxiety': _postAnxiety.round(),
-      'difficulty': _selectedDifficulty,
-      'trigger_types': _selectedTriggers.toList(),
-      'timestamp': FieldValue.serverTimestamp(),
-    };
-
-    final reflection = _reflectionCtrl.text.trim();
-    if (reflection.isNotEmpty) {
-      data['reflection'] = reflection;
-    }
-
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('erp_sessions')
-          .add(data);
+      await _erpService.saveSession(
+        sessionCompleted: _sessionCompleted,
+        durationMins: _selectedMinutes,
+        preAnxiety: _preAnxiety.round(),
+        postAnxiety: _postAnxiety.round(),
+        difficulty: _selectedDifficulty,
+        triggerTypes: _selectedTriggers.toList(),
+        reflection:
+            _reflectionCtrl.text.trim().isEmpty
+                ? null
+                : _reflectionCtrl.text.trim(),
+      );
 
       if (!mounted) return;
       setState(() => _sessionSaved = true);
@@ -990,7 +981,8 @@ class _ErpSessionHistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final service = ErpTimerService();
+    final sessionsStream = service.getSessionHistory();
 
     return Scaffold(
       backgroundColor: _kBg,
@@ -1034,24 +1026,18 @@ class _ErpSessionHistoryScreen extends StatelessWidget {
             // List
             Expanded(
               child:
-                  uid == null
+                  sessionsStream == null
                       ? const Center(child: Text('Not signed in'))
-                      : StreamBuilder<QuerySnapshot>(
-                        stream:
-                            FirebaseFirestore.instance
-                                .collection('users')
-                                .doc(uid)
-                                .collection('erp_sessions')
-                                .orderBy('timestamp', descending: true)
-                                .snapshots(),
+                      : StreamBuilder<List<ErpSession>>(
+                        stream: sessionsStream,
                         builder: (context, snap) {
                           if (snap.connectionState == ConnectionState.waiting) {
                             return const Center(
                               child: CircularProgressIndicator(color: _kBlue),
                             );
                           }
-                          final docs = snap.data?.docs ?? [];
-                          if (docs.isEmpty) {
+                          final sessions = snap.data ?? [];
+                          if (sessions.isEmpty) {
                             return const Center(
                               child: Text(
                                 'No sessions yet.',
@@ -1061,20 +1047,11 @@ class _ErpSessionHistoryScreen extends StatelessWidget {
                           }
                           return ListView.separated(
                             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                            itemCount: docs.length,
+                            itemCount: sessions.length,
                             separatorBuilder:
                                 (_, __) => const SizedBox(height: 10),
                             itemBuilder: (context, i) {
-                              final d = docs[i].data() as Map<String, dynamic>;
-                              final ts = d['timestamp'] as Timestamp?;
-                              final date =
-                                  ts != null ? _formatDate(ts.toDate()) : '—';
-                              final complete =
-                                  (d['session_complete'] as int? ?? 0) == 1;
-                              final triggers =
-                                  (d['trigger_types'] as List?)
-                                      ?.cast<String>() ??
-                                  [];
+                              final s = sessions[i];
                               return Container(
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
@@ -1096,7 +1073,7 @@ class _ErpSessionHistoryScreen extends StatelessWidget {
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          date,
+                                          s.date,
                                           style: const TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w700,
@@ -1110,7 +1087,7 @@ class _ErpSessionHistoryScreen extends StatelessWidget {
                                           ),
                                           decoration: BoxDecoration(
                                             color:
-                                                complete
+                                                s.complete
                                                     ? const Color(0xFFD6F0E0)
                                                     : const Color(0xFFFFE4E4),
                                             borderRadius: BorderRadius.circular(
@@ -1118,14 +1095,14 @@ class _ErpSessionHistoryScreen extends StatelessWidget {
                                             ),
                                           ),
                                           child: Text(
-                                            complete
+                                            s.complete
                                                 ? 'Completed'
                                                 : 'Incomplete',
                                             style: TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w600,
                                               color:
-                                                  complete
+                                                  s.complete
                                                       ? const Color(0xFF2E7D52)
                                                       : const Color(0xFFB02020),
                                             ),
@@ -1138,37 +1115,34 @@ class _ErpSessionHistoryScreen extends StatelessWidget {
                                       children: [
                                         _HistoryStat(
                                           label: 'Duration',
-                                          value:
-                                              '${d['duration_mins'] ?? '—'} min',
+                                          value: '${s.durationMins} min',
                                         ),
                                         const SizedBox(width: 16),
                                         _HistoryStat(
                                           label: 'Pre',
-                                          value:
-                                              '${d['pre_anxiety'] ?? '—'}/10',
+                                          value: '${s.preAnxiety}/10',
                                         ),
                                         const SizedBox(width: 16),
                                         _HistoryStat(
                                           label: 'Post',
-                                          value:
-                                              '${d['post_anxiety'] ?? '—'}/10',
+                                          value: '${s.postAnxiety}/10',
                                         ),
-                                        if (d['difficulty'] != null) ...[
+                                        if (s.difficulty != null) ...[
                                           const SizedBox(width: 16),
                                           _HistoryStat(
                                             label: 'Difficulty',
-                                            value: d['difficulty'] as String,
+                                            value: s.difficulty!,
                                           ),
                                         ],
                                       ],
                                     ),
-                                    if (triggers.isNotEmpty) ...[
+                                    if (s.triggerTypes.isNotEmpty) ...[
                                       const SizedBox(height: 8),
                                       Wrap(
                                         spacing: 6,
                                         runSpacing: 6,
                                         children:
-                                            triggers
+                                            s.triggerTypes
                                                 .map(
                                                   (t) => Container(
                                                     padding:
@@ -1197,12 +1171,10 @@ class _ErpSessionHistoryScreen extends StatelessWidget {
                                                 .toList(),
                                       ),
                                     ],
-                                    if ((d['reflection'] as String?)
-                                            ?.isNotEmpty ==
-                                        true) ...[
+                                    if (s.reflection?.isNotEmpty == true) ...[
                                       const SizedBox(height: 8),
                                       Text(
-                                        d['reflection'] as String,
+                                        s.reflection!,
                                         style: const TextStyle(
                                           fontSize: 12,
                                           color: _kSubtitle,
@@ -1224,26 +1196,6 @@ class _ErpSessionHistoryScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatDate(DateTime dt) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final h = dt.hour.toString().padLeft(2, '0');
-    final m = dt.minute.toString().padLeft(2, '0');
-    return '${dt.day} ${months[dt.month - 1]} ${dt.year}  $h:$m';
   }
 }
 

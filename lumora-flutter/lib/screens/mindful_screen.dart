@@ -1,8 +1,8 @@
 import 'dart:ui';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import '../services/habitfreedom_service.dart';
 
 import 'breathing/box_breathing_screen.dart';
 import 'breathing/panic_reset_screen.dart';
@@ -46,6 +46,7 @@ class _MindfulScreenState extends State<MindfulScreen> {
   bool _didPromptForHabit = false;
   List<_HabitTracker> _habits = const [];
   String? _selectedHabitId;
+  final _habitService = HabitFreedomService();
   final _dropdownKey = GlobalKey();
   OverlayEntry? _dropdownOverlay;
 
@@ -101,17 +102,6 @@ class _MindfulScreenState extends State<MindfulScreen> {
     );
   }
 
-  User? get _user => FirebaseAuth.instance.currentUser;
-
-  CollectionReference<Map<String, dynamic>>? get _habitCollection {
-    final uid = _user?.uid;
-    if (uid == null) return null;
-    return FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('habit_trackers');
-  }
-
   _HabitTracker? get _selectedHabit {
     if (_habits.isEmpty) return null;
     for (final habit in _habits) {
@@ -140,22 +130,9 @@ class _MindfulScreenState extends State<MindfulScreen> {
   }
 
   Future<void> _loadHabitTrackers({bool promptIfEmpty = true}) async {
-    final collection = _habitCollection;
-    if (collection == null) {
-      if (!mounted) return;
-      setState(() {
-        _isHabitLoading = false;
-        _habits = const [];
-        _selectedHabitId = null;
-      });
-      return;
-    }
-
     try {
-      final snapshot = await collection.orderBy('createdAt').get();
-      final habits = snapshot.docs
-          .map((doc) => _HabitTracker.fromDoc(doc))
-          .toList(growable: false);
+      final docs = await _habitService.loadHabits();
+      final habits = docs.map(_HabitTracker.fromMap).toList(growable: false);
 
       if (!mounted) return;
 
@@ -337,12 +314,6 @@ class _MindfulScreenState extends State<MindfulScreen> {
   }
 
   Future<void> _createHabit(String rawName) async {
-    final collection = _habitCollection;
-    if (collection == null) {
-      _showSnackBar('You need to be logged in to track habits.', isError: true);
-      return;
-    }
-
     final cleanedName = _cleanHabitName(rawName);
     final normalizedName = _normalizeHabitName(cleanedName);
     if (normalizedName.isEmpty) return;
@@ -359,13 +330,11 @@ class _MindfulScreenState extends State<MindfulScreen> {
     setState(() => _isHabitSaving = true);
     try {
       final docId = _habitDocId(normalizedName);
-      await collection.doc(docId).set({
-        'name': cleanedName,
-        'normalizedName': normalizedName,
-        'markedDates': <String>[],
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await _habitService.createHabit(
+        docId: docId,
+        name: cleanedName,
+        normalizedName: normalizedName,
+      );
 
       if (!mounted) return;
       setState(() => _selectedHabitId = docId);
@@ -383,9 +352,8 @@ class _MindfulScreenState extends State<MindfulScreen> {
   }
 
   Future<void> _markHabitFreeDay(DateTime date) async {
-    final collection = _habitCollection;
     final habit = _selectedHabit;
-    if (collection == null || habit == null || _isHabitSaving) return;
+    if (habit == null || _isHabitSaving) return;
 
     final dateKey = _dateKey(date);
     if (habit.markedDates.contains(dateKey)) return;
@@ -405,10 +373,7 @@ class _MindfulScreenState extends State<MindfulScreen> {
     });
 
     try {
-      await collection.doc(habit.id).update({
-        'markedDates': FieldValue.arrayUnion([dateKey]),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await _habitService.markFreeDay(habitId: habit.id, dateKey: dateKey);
     } catch (e) {
       // Revert on failure
       if (!mounted) return;
@@ -823,7 +788,7 @@ class _MindfulScreenState extends State<MindfulScreen> {
                 child: CircularProgressIndicator(color: Colors.white),
               ),
             )
-          else if (_user == null)
+          else if (!_habitService.isSignedIn)
             _buildHabitInfoCard(
               child: const _HabitEmptyState(
                 title: 'Sign in to start tracking',
@@ -1453,14 +1418,15 @@ class _HabitTracker {
     required this.markedDates,
   });
 
-  factory _HabitTracker.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data() ?? <String, dynamic>{};
+  factory _HabitTracker.fromMap(Map<String, dynamic> data) {
     final rawMarkedDates = data['markedDates'] as List<dynamic>? ?? const [];
     return _HabitTracker(
-      id: doc.id,
+      id: data['id'] as String,
       name: (data['name'] as String? ?? 'Habit').trim(),
       normalizedName:
-          (data['normalizedName'] as String? ?? doc.id).trim().toLowerCase(),
+          (data['normalizedName'] as String? ?? data['id'] as String)
+              .trim()
+              .toLowerCase(),
       markedDates: rawMarkedDates.whereType<String>().toSet().toList()..sort(),
     );
   }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
 import 'package:lumora_flutter/screens/login_screen.dart';
 import 'package:lumora_flutter/screens/upgrade_account_screen.dart';
@@ -32,12 +31,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadUsername() async {
     final uid = _authService.currentUser?.uid;
     if (uid == null) return;
-    final doc =
-        await FirebaseFirestore.instance.collection('users').doc(uid).get();
-    if (mounted && doc.exists) {
-      setState(() {
-        _username = doc.data()?['username'] as String?;
-      });
+    final username = await _authService.getUsername(uid);
+    if (mounted && username != null) {
+      setState(() => _username = username);
     }
   }
 
