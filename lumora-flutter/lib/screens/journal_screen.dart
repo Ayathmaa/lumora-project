@@ -148,8 +148,6 @@ class _JournalScreenState extends State<JournalScreen> {
               _buildPostAnxiety(),
               const SizedBox(height: 20),
               _buildSaveButton(),
-              const SizedBox(height: 12),
-              _buildHistoryLink(),
             ],
           ),
         ),
@@ -679,27 +677,6 @@ class _JournalScreenState extends State<JournalScreen> {
                   'Save Reflection',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
-      ),
-    );
-  }
-
-  // ── History link ──────────────────────────────────────────────────────────
-  Widget _buildHistoryLink() {
-    return Center(
-      child: TextButton.icon(
-        onPressed:
-            () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const _JournalHistoryScreen()),
-            ),
-        icon: const Icon(Icons.history_rounded, color: _kBlue, size: 18),
-        label: const Text(
-          'View Journal History',
-          style: TextStyle(
-            color: _kBlue,
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
-        ),
       ),
     );
   }
