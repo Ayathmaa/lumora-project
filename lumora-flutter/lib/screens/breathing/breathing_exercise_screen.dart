@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
+import '../../services/breathing_service.dart';
 import 'breathing_circle.dart';
 import 'breathing_technique.dart';
 import 'completion_screen.dart';
@@ -79,6 +80,7 @@ class _BreathingExerciseScreenState extends State<BreathingExerciseScreen>
   Timer? _sessionTimer;
 
   // ── Session tracking ──────────────────────────────────────────────────────
+  final _breathingService = BreathingService();
 
   // ── Slow deep: time-based ─────────────────────────────────────────────────
   int _sessionSecondsRemaining = 0;
@@ -185,6 +187,8 @@ class _BreathingExerciseScreenState extends State<BreathingExerciseScreen>
   }
 
   void _stop() {
+    final wasRunning = _isRunning;
+    final elapsed = _elapsedSeconds;
     _cleanup();
     setState(() {
       _isRunning = false;
@@ -193,6 +197,15 @@ class _BreathingExerciseScreenState extends State<BreathingExerciseScreen>
       _currentPhaseIndex = 0;
       _currentRound = 0;
     });
+    if (wasRunning && elapsed > 0) {
+      _breathingService
+          .saveSession(
+            exerciseType: _t.name,
+            completed: 0,
+            durationSeconds: elapsed,
+          )
+          .catchError((_) {});
+    }
   }
 
   void _cleanup() {
@@ -203,11 +216,19 @@ class _BreathingExerciseScreenState extends State<BreathingExerciseScreen>
   }
 
   void _complete() {
+    final elapsed = _elapsedSeconds;
     _cleanup();
     setState(() {
       _isComplete = true;
       _isRunning = false;
     });
+    _breathingService
+        .saveSession(
+          exerciseType: _t.name,
+          completed: 1,
+          durationSeconds: elapsed,
+        )
+        .catchError((_) {});
   }
 
   void _tryAgain() {

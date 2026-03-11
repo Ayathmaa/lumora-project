@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../services/habitfreedom_service.dart';
 
 import 'breathing/box_breathing_screen.dart';
+import 'breathing/breathing_history_screen.dart';
 import 'breathing/panic_reset_screen.dart';
 import 'breathing/relaxation_478_screen.dart';
 import 'breathing/slow_deep_breathing_screen.dart';
@@ -690,13 +691,55 @@ class _MindfulScreenState extends State<MindfulScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Breathing Exercises',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: _kNavy,
-            ),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Breathing Exercises',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: _kNavy,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap:
+                    () => Navigator.of(context).push(
+                      PageRouteBuilder(
+                        transitionDuration: Duration.zero,
+                        reverseTransitionDuration: Duration.zero,
+                        pageBuilder:
+                            (_, __, ___) => const BreathingHistoryScreen(),
+                      ),
+                    ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _kChipBg,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.history_rounded, color: _kSubtitle, size: 15),
+                      SizedBox(width: 4),
+                      Text(
+                        'History',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: _kSubtitle,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           GridView.count(
