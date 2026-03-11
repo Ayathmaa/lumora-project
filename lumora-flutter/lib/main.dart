@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'firebase_options.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
+import 'package:lumora_flutter/services/mood_service.dart';
+import 'package:lumora_flutter/services/notification_service.dart';
 import 'package:lumora_flutter/screens/login_screen.dart';
 import 'package:lumora_flutter/screens/main_shell.dart';
 
@@ -24,6 +27,26 @@ class _NoTransitionBuilder extends PageTransitionsBuilder {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  final notificationService = NotificationService();
+
+  // Wire up the mood-save callback used by notification actions.
+  // This runs both when the app is in the foreground and when it launches
+  // from a background action tap.
+  onNotificationMoodScore = (score) async {
+    try {
+      await MoodService().saveTodayMood(score: score);
+    } catch (_) {}
+  };
+
+  await notificationService.init(
+    onActionReceived: (NotificationResponse response) {
+      handleMoodAction(response.actionId);
+    },
+  );
+  await notificationService.requestPermissions();
+  await notificationService.scheduleDailyMoodReminder();
+
   runApp(const MyApp());
 }
 

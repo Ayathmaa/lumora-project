@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
+import 'package:lumora_flutter/services/mood_service.dart';
+import 'package:lumora_flutter/services/quote_service.dart';
 import 'package:lumora_flutter/screens/journal_screen.dart';
 import 'package:lumora_flutter/screens/erp_timer_screen.dart';
 import 'package:lumora_flutter/screens/progress_screen.dart';
@@ -25,15 +29,24 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final _authService = AuthService();
+  final _moodService = MoodService();
 
   int? _selectedMood; // 0 = saddest … 4 = happiest
   String? _anonUsername;
+  bool _isMoodVisible = false;
+  bool _isMoodSaved = false;
+  bool _isMoodSaving = false;
+  Timer? _moodTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _initMoodVisibility();
+    _checkTodayMood();
+
     final user = _authService.currentUser;
     if (user != null && user.isAnonymous) {
       if (user.displayName?.isNotEmpty == true) {
@@ -55,6 +68,71 @@ class _HomeScreenState extends State<HomeScreen> {
               debugPrint('HomeScreen: could not load guest username – $e');
             });
       }
+    }
+  }
+
+  void _initMoodVisibility() {
+    final now = DateTime.now();
+    // Show mood card from 7 PM onwards.
+    if (now.hour >= 19) {
+      _isMoodVisible = true;
+    } else {
+      // Schedule the card to appear at exactly 19:00 today.
+      final target = DateTime(now.year, now.month, now.day, 19, 0, 0);
+      _moodTimer = Timer(target.difference(now), () {
+        if (mounted) setState(() => _isMoodVisible = true);
+      });
+    }
+  }
+
+  void _checkTodayMood() {
+    _moodService
+        .hasTodayMood()
+        .then((saved) {
+          if (mounted) setState(() => _isMoodSaved = saved);
+        })
+        .catchError((_) {});
+  }
+
+  Future<void> _saveMood() async {
+    if (_selectedMood == null || _isMoodSaving) return;
+    setState(() => _isMoodSaving = true);
+    try {
+      await _moodService.saveTodayMood(score: _selectedMood! + 1);
+      if (!mounted) return;
+      setState(() {
+        _isMoodSaved = true;
+        _isMoodSaving = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isMoodSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not save mood: $e'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _moodTimer?.cancel();
+    super.dispose();
+  }
+
+  // Re-check mood state when the user returns to the app (e.g. after logging
+  // mood via the notification action while the app was in the background).
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_isMoodSaved) {
+      _checkTodayMood();
     }
   }
 
@@ -92,12 +170,17 @@ class _HomeScreenState extends State<HomeScreen> {
               const _QuoteCard(),
               const SizedBox(height: 14),
 
-              // ── daily mood log ────────────────────────────────────────────
-              _MoodCard(
-                selectedMood: _selectedMood,
-                onMoodSelected: (i) => setState(() => _selectedMood = i),
-              ),
-              const SizedBox(height: 14),
+              // ── daily mood log (visible from 7 PM) ───────────────────────
+              if (_isMoodVisible) ...[
+                _MoodCard(
+                  selectedMood: _selectedMood,
+                  onMoodSelected: (i) => setState(() => _selectedMood = i),
+                  isSaved: _isMoodSaved,
+                  isSaving: _isMoodSaving,
+                  onSave: _saveMood,
+                ),
+                const SizedBox(height: 14),
+              ],
 
               // ── feature grid ──────────────────────────────────────────────
               const _FeatureGrid(),
@@ -215,8 +298,41 @@ class _GreetingCard extends StatelessWidget {
 // ════════════════════════════════════════════════════════════════════════════
 //  Quote of the Day Card
 // ════════════════════════════════════════════════════════════════════════════
-class _QuoteCard extends StatelessWidget {
+class _QuoteCard extends StatefulWidget {
   const _QuoteCard();
+
+  @override
+  State<_QuoteCard> createState() => _QuoteCardState();
+}
+
+class _QuoteCardState extends State<_QuoteCard> {
+  final _service = QuoteService();
+  DailyQuote? _quote;
+  bool _isLoading = true;
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final quote = await _service.fetchTodayQuote();
+      if (!mounted) return;
+      setState(() {
+        _quote = quote;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _hasError = true;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -233,10 +349,10 @@ class _QuoteCard extends StatelessWidget {
         ],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Quote of the day',
             style: TextStyle(
               fontSize: 18,
@@ -244,17 +360,55 @@ class _QuoteCard extends StatelessWidget {
               color: _kNavy,
             ),
           ),
-          SizedBox(height: 8),
-          Text(
-            '"You are growing gently, one day at a time."',
-            style: TextStyle(
-              fontSize: 13.5,
-              fontStyle: FontStyle.italic,
-              fontWeight: FontWeight.w500,
-              color: _kSubtitle,
-              height: 1.4,
+          const SizedBox(height: 10),
+          if (_isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: _kBlue,
+                  ),
+                ),
+              ),
+            )
+          else if (_hasError || _quote == null)
+            const Text(
+              '"You are growing gently, one day at a time."',
+              style: TextStyle(
+                fontSize: 13.5,
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w500,
+                color: _kSubtitle,
+                height: 1.4,
+              ),
+            )
+          else ...[
+            Text(
+              '\u201c${_quote!.text}\u201d',
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w500,
+                color: _kSubtitle,
+                height: 1.5,
+              ),
             ),
-          ),
+            if (_quote!.author.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                '\u2014 ${_quote!.author}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: _kBlue,
+                ),
+              ),
+            ],
+          ],
         ],
       ),
     );
@@ -267,8 +421,17 @@ class _QuoteCard extends StatelessWidget {
 class _MoodCard extends StatelessWidget {
   final int? selectedMood;
   final ValueChanged<int> onMoodSelected;
+  final bool isSaved;
+  final bool isSaving;
+  final VoidCallback onSave;
 
-  const _MoodCard({required this.selectedMood, required this.onMoodSelected});
+  const _MoodCard({
+    required this.selectedMood,
+    required this.onMoodSelected,
+    required this.isSaved,
+    required this.isSaving,
+    required this.onSave,
+  });
 
   static const _moods = ['😢', '😔', '😐', '🙂', '😊'];
 
@@ -287,73 +450,117 @@ class _MoodCard extends StatelessWidget {
         ],
       ),
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-      child: Column(
-        children: [
-          // Title
-          const Text(
-            'Daily Mood Log',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: _kNavy,
-            ),
-          ),
-          const SizedBox(height: 16),
+      child: isSaved ? _buildSavedState() : _buildInputState(context),
+    );
+  }
 
-          // Emoji row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: List.generate(_moods.length, (i) {
-              final isSelected = selectedMood == i;
-              return GestureDetector(
-                onTap: () => onMoodSelected(i),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color:
-                        isSelected
-                            ? _kBlue.withValues(alpha: 0.25)
-                            : _kEmojiCircle,
-                    border:
-                        isSelected ? Border.all(color: _kBlue, width: 2) : null,
-                  ),
-                  child: Center(
-                    child: Text(
-                      _moods[i],
-                      style: const TextStyle(fontSize: 24),
+  Widget _buildSavedState() {
+    return Column(
+      children: [
+        const Icon(
+          Icons.check_circle_rounded,
+          color: Color(0xFF3DAA6E),
+          size: 40,
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'Mood logged for today!',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: _kNavy,
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'See you tomorrow 🌙',
+          style: TextStyle(fontSize: 13, color: _kSubtitle),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInputState(BuildContext context) {
+    return Column(
+      children: [
+        const Text(
+          'Daily Mood Log',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: _kNavy,
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'How was your day overall?',
+          style: TextStyle(fontSize: 12, color: _kSubtitle),
+        ),
+        const SizedBox(height: 16),
+
+        // Emoji row
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: List.generate(_moods.length, (i) {
+            final isSelected = selectedMood == i;
+            return GestureDetector(
+              onTap: () => onMoodSelected(i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color:
+                      isSelected
+                          ? _kBlue.withValues(alpha: 0.25)
+                          : _kEmojiCircle,
+                  border:
+                      isSelected ? Border.all(color: _kBlue, width: 2) : null,
+                ),
+                child: Center(
+                  child: Text(_moods[i], style: const TextStyle(fontSize: 24)),
+                ),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 18),
+
+        SizedBox(
+          width: double.infinity,
+          height: 46,
+          child: ElevatedButton(
+            onPressed: selectedMood != null && !isSaving ? onSave : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _kBlue,
+              disabledBackgroundColor: _kBlue.withValues(alpha: 0.4),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+            ),
+            child:
+                isSaving
+                    ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                    : const Text(
+                      'Log Today\'s Mood',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ),
-              );
-            }),
           ),
-          const SizedBox(height: 18),
-
-          // Add Note button
-          SizedBox(
-            width: double.infinity,
-            height: 46,
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _kBlue,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              child: const Text(
-                'Add Note',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
