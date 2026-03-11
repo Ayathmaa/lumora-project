@@ -40,18 +40,20 @@ class NotificationService {
 
   Future<void> requestPermissions() async {
     // Android 13+
-    final android = flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
+    final android =
+        flutterLocalNotificationsPlugin
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
     await android?.requestNotificationsPermission();
     await android?.requestExactAlarmsPermission();
 
     // iOS
-    final ios = flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin
-        >();
+    final ios =
+        flutterLocalNotificationsPlugin
+            .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin
+            >();
     await ios?.requestPermissions(alert: true, badge: true, sound: true);
   }
 
