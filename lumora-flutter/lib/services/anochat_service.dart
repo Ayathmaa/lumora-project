@@ -1,0 +1,203 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'auth_service.dart';
+
+// ── Model ──────────────────────────────────────────────────────────────────
+
+class AnoPost {
+  final String id;
+  final String uid;
+  final String authorName;
+  final String content;
+  final String category;
+  final DateTime createdAt;
+  final int supportCount;
+  final int relateCount;
+  final int encouragementCount;
+  final bool requiresReview;
+
+  const AnoPost({
+    required this.id,
+    required this.uid,
+    required this.authorName,
+    required this.content,
+    required this.category,
+    required this.createdAt,
+    required this.supportCount,
+    required this.relateCount,
+    required this.encouragementCount,
+    required this.requiresReview,
+  });
+
+  int get totalReactions => supportCount + relateCount + encouragementCount;
+}
+
+// ── Service ────────────────────────────────────────────────────────────────
+
+class AnoChatService {
+  final _db = FirebaseFirestore.instance;
+  final _auth = AuthService();
+
+  static const int postMaxLength = 400;
+
+  static const List<String> categories = [
+    'Struggling Today',
+    'Small Win',
+    'ERP Progress',
+    'Seeking Advice',
+    'Motivation',
+  ];
+
+  // Compound phrases only — avoids flagging legitimate mental health discussion.
+  static const _flaggedPhrases = [
+    'kill myself',
+    'end my life',
+    'want to die',
+    'suicide',
+    'self-harm',
+    'self harm',
+    'hurt myself',
+    'harm myself',
+    'cut myself',
+    'ending it all',
+    'not worth living',
+  ];
+
+  String get _uid {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('Not signed in.');
+    return user.uid;
+  }
+
+  CollectionReference<Map<String, dynamic>> get _posts =>
+      _db.collection('anoPosts');
+
+  bool _requiresReview(String content) {
+    final lower = content.toLowerCase();
+    return _flaggedPhrases.any((phrase) => lower.contains(phrase));
+  }
+
+  AnoPost _fromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final d = doc.data();
+    final counts = (d['reactionCounts'] as Map<String, dynamic>?) ?? {};
+    return AnoPost(
+      id: doc.id,
+      uid: d['uid'] as String? ?? '',
+      authorName: d['authorName'] as String? ?? 'Anonymous',
+      content: d['content'] as String? ?? '',
+      category: d['category'] as String? ?? '',
+      createdAt: (d['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      supportCount: (counts['support'] as num?)?.toInt() ?? 0,
+      relateCount: (counts['relate'] as num?)?.toInt() ?? 0,
+      encouragementCount: (counts['encouragement'] as num?)?.toInt() ?? 0,
+      requiresReview: d['requiresReview'] as bool? ?? false,
+    );
+  }
+
+  /// Streams the latest 50 posts. Client-side category filter avoids needing
+  /// a composite Firestore index for MVP.
+  Stream<List<AnoPost>> postsStream({String? category}) {
+    return _posts
+        .orderBy('createdAt', descending: true)
+        .limit(50)
+        .snapshots()
+        .map((snap) {
+          final all = snap.docs.map(_fromDoc).toList();
+          if (category == null) return all;
+          return all.where((p) => p.category == category).toList();
+        });
+  }
+
+  Future<void> createPost({
+    required String content,
+    required String category,
+    required String authorName,
+  }) async {
+    final uid = _uid;
+    final trimmed = content.trim();
+    if (trimmed.isEmpty) throw Exception('Post cannot be empty.');
+    if (trimmed.length > postMaxLength) {
+      throw Exception('Post exceeds $postMaxLength characters.');
+    }
+    if (!categories.contains(category)) throw Exception('Invalid category.');
+
+    await _posts.add({
+      'uid': uid,
+      'authorName': authorName,
+      'content': trimmed,
+      'category': category,
+      'createdAt': FieldValue.serverTimestamp(),
+      'reactionCounts': {'support': 0, 'relate': 0, 'encouragement': 0},
+      'requiresReview': _requiresReview(trimmed),
+    });
+  }
+
+  Future<void> deletePost(String postId) async {
+    final uid = _uid;
+    final doc = await _posts.doc(postId).get();
+    if (!doc.exists) return;
+    if ((doc.data()!['uid'] as String?) != uid) {
+      throw Exception('Cannot delete another user\'s post.');
+    }
+    await _posts.doc(postId).delete();
+  }
+
+  /// Toggles a reaction. Calling with the same type the user already selected
+  /// removes it (un-react). Calling with a different type swaps it.
+  Future<void> toggleReaction(String postId, String reactionType) async {
+    final uid = _uid;
+    final postRef = _posts.doc(postId);
+    final reactionRef = _db
+        .collection('users')
+        .doc(uid)
+        .collection('anoReactions')
+        .doc(postId);
+
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(reactionRef);
+      if (snap.exists) {
+        final current = snap.data()!['type'] as String;
+        if (current == reactionType) {
+          // Same type — remove reaction.
+          tx.delete(reactionRef);
+          tx.update(postRef, {
+            'reactionCounts.$current': FieldValue.increment(-1),
+          });
+        } else {
+          // Different type — swap reaction.
+          tx.set(reactionRef, {'type': reactionType});
+          tx.update(postRef, {
+            'reactionCounts.$current': FieldValue.increment(-1),
+            'reactionCounts.$reactionType': FieldValue.increment(1),
+          });
+        }
+      } else {
+        // First reaction.
+        tx.set(reactionRef, {'type': reactionType});
+        tx.update(postRef, {
+          'reactionCounts.$reactionType': FieldValue.increment(1),
+        });
+      }
+    });
+  }
+
+  /// Streams all of the current user's reactions as Map<postId, reactionType>.
+  Stream<Map<String, String>> myReactionsStream() {
+    try {
+      final uid = _uid;
+      return _db
+          .collection('users')
+          .doc(uid)
+          .collection('anoReactions')
+          .snapshots()
+          .map(
+            (snap) => {
+              for (final doc in snap.docs)
+                if (doc.data()['type'] is String)
+                  doc.id: doc.data()['type'] as String,
+            },
+          );
+    } catch (_) {
+      return Stream.value({});
+    }
+  }
+}

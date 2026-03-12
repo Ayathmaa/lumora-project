@@ -1,0 +1,178 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── helpers ────────────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ── users/{uid} ────────────────────────────────────────────────────────
+    // Only the owner can read or write their own profile document.
+    match /users/{uid} {
+      allow read:   if isOwner(uid);
+      allow create: if isOwner(uid)
+                    && request.resource.data.keys().hasAll(
+                         ['name', 'email', 'username', 'createdAt']
+                       );
+      allow update: if isOwner(uid);
+      allow delete: if false; // profiles are never deleted client-side
+
+      // ── users/{uid}/anoReactions/{postId} ────────────────────────────
+      // A user may only manage their own reaction documents.
+      match /anoReactions/{postId} {
+        allow read:   if isOwner(uid);
+        allow write:  if isOwner(uid)
+                      && (
+                           // set: must only contain a valid 'type' field
+                           !request.resource.data.diff(
+                             resource.data
+                           ).affectedKeys().hasAny(['type']) == false
+                           || request.resource.data.keys().hasOnly(['type'])
+                              && request.resource.data.type in
+                                   ['support', 'relate', 'encouragement']
+                         );
+        allow delete: if isOwner(uid);
+      }
+
+      // ── users/{uid}/breathing_sessions ───────────────────────────────
+      match /breathing_sessions/{sessionId} {
+        allow read:   if isOwner(uid);
+        allow create: if isOwner(uid)
+                      && request.resource.data.keys().hasAll(
+                           ['exerciseType', 'completed', 'durationSeconds',
+                            'timestamp']
+                         );
+        allow update, delete: if false; // sessions are immutable once saved
+      }
+
+      // ── users/{uid}/erp_sessions ─────────────────────────────────────
+      match /erp_sessions/{sessionId} {
+        allow read:   if isOwner(uid);
+        allow create: if isOwner(uid)
+                      && request.resource.data.keys().hasAll(
+                           ['session_complete', 'duration_mins',
+                            'pre_anxiety', 'post_anxiety', 'timestamp']
+                         );
+        allow update, delete: if false;
+      }
+
+      // ── users/{uid}/habit_trackers/{habitId} ─────────────────────────
+      match /habit_trackers/{habitId} {
+        allow read:   if isOwner(uid);
+        allow create: if isOwner(uid)
+                      && request.resource.data.keys().hasAll(
+                           ['name', 'normalizedName', 'markedDates',
+                            'createdAt', 'updatedAt']
+                         );
+        // Only 'markedDates' and 'updatedAt' may change on update.
+        allow update: if isOwner(uid)
+                      && request.resource.data.diff(resource.data)
+                           .affectedKeys()
+                           .hasOnly(['markedDates', 'updatedAt']);
+        allow delete: if false;
+      }
+
+      // ── users/{uid}/cbt_journal ──────────────────────────────────────
+      match /cbt_journal/{entryId} {
+        allow read:   if isOwner(uid);
+        allow create: if isOwner(uid)
+                      && request.resource.data.keys().hasAll(
+                           ['journalNumber', 'createdAt']
+                         );
+        allow update, delete: if false;
+      }
+
+      // ── users/{uid}/daily_moods/{dateKey} ────────────────────────────
+      match /daily_moods/{dateKey} {
+        allow read:   if isOwner(uid);
+        allow create: if isOwner(uid)
+                      && request.resource.data.keys().hasAll(
+                           ['score', 'loggedAt']
+                         )
+                      && request.resource.data.score is int
+                      && request.resource.data.score >= 1
+                      && request.resource.data.score <= 5;
+        // Allow re-logging (set with merge) the same day — same constraints.
+        allow update: if isOwner(uid)
+                      && request.resource.data.keys().hasAll(
+                           ['score', 'loggedAt']
+                         )
+                      && request.resource.data.score is int
+                      && request.resource.data.score >= 1
+                      && request.resource.data.score <= 5;
+        allow delete: if false;
+      }
+    }
+
+    // ── usernames/{username} ───────────────────────────────────────────────
+    // Anyone signed in may check if a username is taken (read).
+    // Only a signed-in user may reserve a username, and only with their uid.
+    // No updates or deletes — username reservation is permanent.
+    match /usernames/{username} {
+      allow read:   if isSignedIn();
+      allow create: if isSignedIn()
+                    && request.resource.data.keys().hasOnly(['uid'])
+                    && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // ── anoPosts ───────────────────────────────────────────────────────────
+    match /anoPosts/{postId} {
+      // Any signed-in user can read posts.
+      allow read: if isSignedIn();
+
+      // Create: must supply required fields; uid must match the caller.
+      allow create: if isSignedIn()
+                    && request.resource.data.keys().hasAll(
+                         ['uid', 'authorName', 'content', 'category',
+                          'createdAt', 'reactionCounts', 'requiresReview']
+                       )
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.content.size() <= 400
+                    && request.resource.data.category in [
+                         'Struggling Today', 'Small Win', 'ERP Progress',
+                         'Seeking Advice', 'Motivation'
+                       ]
+                    // Initial counts must all be zero.
+                    && request.resource.data.reactionCounts.support     == 0
+                    && request.resource.data.reactionCounts.relate      == 0
+                    && request.resource.data.reactionCounts.encouragement == 0;
+
+      // Update: clients may ONLY touch reactionCounts (via the service
+      // transaction). All other fields — uid, content, category, etc. —
+      // must remain unchanged.
+      allow update: if isSignedIn()
+                    && request.resource.data.diff(resource.data)
+                         .affectedKeys()
+                         .hasOnly(['reactionCounts'])
+                    // Each count must change by exactly +1 or -1 max.
+                    && (request.resource.data.reactionCounts.support
+                          - resource.data.reactionCounts.support) <= 1
+                    && (request.resource.data.reactionCounts.support
+                          - resource.data.reactionCounts.support) >= -1
+                    && (request.resource.data.reactionCounts.relate
+                          - resource.data.reactionCounts.relate) <= 1
+                    && (request.resource.data.reactionCounts.relate
+                          - resource.data.reactionCounts.relate) >= -1
+                    && (request.resource.data.reactionCounts.encouragement
+                          - resource.data.reactionCounts.encouragement) <= 1
+                    && (request.resource.data.reactionCounts.encouragement
+                          - resource.data.reactionCounts.encouragement) >= -1;
+
+      // Delete: only the original author may delete their post.
+      allow delete: if isSignedIn()
+                    && resource.data.uid == request.auth.uid;
+    }
+
+    // ── catch-all: deny everything not explicitly covered ──────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
