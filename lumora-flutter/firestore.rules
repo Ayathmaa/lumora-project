@@ -129,20 +129,17 @@ service cloud.firestore {
 
       // Create: must supply required fields; uid must match the caller.
       allow create: if isSignedIn()
+                    && request.resource.data.uid == request.auth.uid
                     && request.resource.data.keys().hasAll(
                          ['uid', 'authorName', 'content', 'category',
                           'createdAt', 'reactionCounts', 'requiresReview']
                        )
-                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.content.size() > 0
                     && request.resource.data.content.size() <= 400
                     && request.resource.data.category in [
                          'Struggling Today', 'Small Win', 'ERP Progress',
                          'Seeking Advice', 'Motivation'
-                       ]
-                    // Initial counts must all be zero.
-                    && request.resource.data.reactionCounts.support     == 0
-                    && request.resource.data.reactionCounts.relate      == 0
-                    && request.resource.data.reactionCounts.encouragement == 0;
+                       ];
 
       // Update: clients may ONLY touch reactionCounts (via the service
       // transaction). All other fields — uid, content, category, etc. —

@@ -76,13 +76,19 @@ class AnoChatService {
     return _flaggedPhrases.any((phrase) => lower.contains(phrase));
   }
 
-  AnoPost _fromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+  AnoPost _fromDoc(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc, {
+    String? resolvedAuthorName,
+  }) {
     final d = doc.data();
     final counts = (d['reactionCounts'] as Map<String, dynamic>?) ?? {};
     return AnoPost(
       id: doc.id,
       uid: d['uid'] as String? ?? '',
-      authorName: d['authorName'] as String? ?? 'Anonymous',
+      authorName:
+          resolvedAuthorName?.trim().isNotEmpty == true
+              ? resolvedAuthorName!.trim()
+              : (d['authorName'] as String? ?? 'Anonymous'),
       content: d['content'] as String? ?? '',
       category: d['category'] as String? ?? '',
       createdAt: (d['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -100,8 +106,34 @@ class AnoChatService {
         .orderBy('createdAt', descending: true)
         .limit(50)
         .snapshots()
-        .map((snap) {
-          final all = snap.docs.map(_fromDoc).toList();
+        .asyncMap((snap) async {
+          final uids =
+              snap.docs
+                  .map((doc) => doc.data()['uid'] as String?)
+                  .whereType<String>()
+                  .toSet();
+
+          final usernames = <String, String>{};
+          await Future.wait(
+            uids.map((uid) async {
+              final userDoc = await _db.collection('users').doc(uid).get();
+              final username = userDoc.data()?['username'] as String?;
+              if (username != null && username.trim().isNotEmpty) {
+                usernames[uid] = username.trim();
+              }
+            }),
+          );
+
+          final all =
+              snap.docs
+                  .map(
+                    (doc) => _fromDoc(
+                      doc,
+                      resolvedAuthorName:
+                          usernames[doc.data()['uid'] as String? ?? ''],
+                    ),
+                  )
+                  .toList();
           if (category == null) return all;
           return all.where((p) => p.category == category).toList();
         });
@@ -120,9 +152,13 @@ class AnoChatService {
     }
     if (!categories.contains(category)) throw Exception('Invalid category.');
 
+    final username = await _auth.getUsername(uid);
+    final safeAuthorName =
+        username?.trim().isNotEmpty == true ? username!.trim() : authorName;
+
     await _posts.add({
       'uid': uid,
-      'authorName': authorName,
+      'authorName': safeAuthorName,
       'content': trimmed,
       'category': category,
       'createdAt': FieldValue.serverTimestamp(),

@@ -54,6 +54,8 @@ class _AnoChatScreenState extends State<AnoChatScreen> {
   String? _selectedCategory;
   late Stream<List<AnoPost>> _postsStream;
   Map<String, String> _myReactions = {};
+  // postId → {reactionType → countDelta} — cleared once Firestore stream confirms
+  final Map<String, Map<String, int>> _countDeltas = {};
   StreamSubscription<Map<String, String>>? _reactionSub;
 
   String _myName = '...';
@@ -65,7 +67,12 @@ class _AnoChatScreenState extends State<AnoChatScreen> {
     super.initState();
     _postsStream = _service.postsStream();
     _reactionSub = _service.myReactionsStream().listen((map) {
-      if (mounted) setState(() => _myReactions = map);
+      if (mounted)
+        setState(() {
+          _myReactions = map;
+          // Firestore confirmed — clear pending deltas
+          _countDeltas.clear();
+        });
     });
     _loadIdentity();
   }
@@ -75,29 +82,25 @@ class _AnoChatScreenState extends State<AnoChatScreen> {
     if (user == null) return;
     _currentUid = user.uid;
 
-    if (user.displayName?.isNotEmpty == true) {
-      setState(() {
-        _myName = user.displayName!;
-        _nameLoaded = true;
-      });
-    } else {
-      _auth
-          .getUsername(user.uid)
-          .then((name) {
-            if (!mounted) return;
-            setState(() {
-              _myName = name ?? 'Anonymous';
-              _nameLoaded = true;
-            });
-          })
-          .catchError((_) {
-            if (!mounted) return;
-            setState(() {
-              _myName = 'Anonymous';
-              _nameLoaded = true;
-            });
+    _auth
+        .getUsername(user.uid)
+        .then((username) {
+          if (!mounted) return;
+          setState(() {
+            _myName =
+                username?.trim().isNotEmpty == true
+                    ? username!.trim()
+                    : 'Anonymous';
+            _nameLoaded = true;
           });
-    }
+        })
+        .catchError((_) {
+          if (!mounted) return;
+          setState(() {
+            _myName = 'Anonymous';
+            _nameLoaded = true;
+          });
+        });
   }
 
   @override
@@ -114,10 +117,41 @@ class _AnoChatScreenState extends State<AnoChatScreen> {
   }
 
   Future<void> _handleReaction(String postId, String type) async {
+    final prevReaction = _myReactions[postId];
+    final isSameType = prevReaction == type;
+
+    // Compute what the count change will be
+    final delta = <String, int>{};
+    if (prevReaction != null) delta[prevReaction] = -1;
+    if (!isSameType) delta[type] = (delta[type] ?? 0) + 1;
+
+    final prevReactions = Map<String, String>.from(_myReactions);
+    final prevDeltas = <String, Map<String, int>>{
+      for (final e in _countDeltas.entries)
+        e.key: Map<String, int>.from(e.value),
+    };
+
+    setState(() {
+      if (isSameType) {
+        _myReactions.remove(postId);
+      } else {
+        _myReactions[postId] = type;
+      }
+      final existing = Map<String, int>.from(_countDeltas[postId] ?? {});
+      delta.forEach((k, v) => existing[k] = (existing[k] ?? 0) + v);
+      _countDeltas[postId] = existing;
+    });
+
     try {
       await _service.toggleReaction(postId, type);
     } catch (e) {
       if (!mounted) return;
+      setState(() {
+        _myReactions = prevReactions;
+        _countDeltas
+          ..clear()
+          ..addAll(prevDeltas);
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Could not react: $e'),
@@ -281,6 +315,7 @@ class _AnoChatScreenState extends State<AnoChatScreen> {
                       return _PostCard(
                         post: post,
                         myReaction: _myReactions[post.id],
+                        countDelta: _countDeltas[post.id] ?? const {},
                         isOwn: post.uid == _currentUid,
                         onReact: (type) => _handleReaction(post.id, type),
                         onDelete: () => _handleDelete(post.id),
@@ -350,6 +385,7 @@ class _FilterChip extends StatelessWidget {
 class _PostCard extends StatelessWidget {
   final AnoPost post;
   final String? myReaction;
+  final Map<String, int> countDelta;
   final bool isOwn;
   final ValueChanged<String> onReact;
   final VoidCallback onDelete;
@@ -357,6 +393,7 @@ class _PostCard extends StatelessWidget {
   const _PostCard({
     required this.post,
     required this.myReaction,
+    required this.countDelta,
     required this.isOwn,
     required this.onReact,
     required this.onDelete,
@@ -501,7 +538,7 @@ class _PostCard extends StatelessWidget {
               _ReactionButton(
                 emoji: '❤️',
                 label: 'Support',
-                count: post.supportCount,
+                count: post.supportCount + (countDelta['support'] ?? 0),
                 isActive: myReaction == 'support',
                 onTap: () => onReact('support'),
               ),
@@ -509,7 +546,7 @@ class _PostCard extends StatelessWidget {
               _ReactionButton(
                 emoji: '🤝',
                 label: 'Relate',
-                count: post.relateCount,
+                count: post.relateCount + (countDelta['relate'] ?? 0),
                 isActive: myReaction == 'relate',
                 onTap: () => onReact('relate'),
               ),
@@ -517,7 +554,9 @@ class _PostCard extends StatelessWidget {
               _ReactionButton(
                 emoji: '🌱',
                 label: 'Encourage',
-                count: post.encouragementCount,
+                count:
+                    post.encouragementCount +
+                    (countDelta['encouragement'] ?? 0),
                 isActive: myReaction == 'encouragement',
                 onTap: () => onReact('encouragement'),
               ),
@@ -823,21 +862,52 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                         color: isSelected ? bg : const Color(0xFFF0F4F8),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isSelected ? fg : Colors.transparent,
+                          color: isSelected ? fg : const Color(0xFFD6E4F0),
                           width: 1.2,
                         ),
+                        boxShadow:
+                            isSelected
+                                ? const [
+                                  BoxShadow(
+                                    color: Color(0x12000000),
+                                    blurRadius: 6,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ]
+                                : const [],
                       ),
-                      child: Text(
-                        cat,
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
-                          color: isSelected ? fg : _kSubtitle,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isSelected) ...[
+                            Icon(Icons.check_rounded, size: 14, color: fg),
+                            const SizedBox(width: 4),
+                          ],
+                          Text(
+                            cat,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected ? fg : _kSubtitle,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   );
                 }).toList(),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _selectedCategory == null
+                ? 'Select a category before posting.'
+                : 'Selected: $_selectedCategory',
+            style: TextStyle(
+              fontSize: 11.5,
+              color: _selectedCategory == null ? _kSubtitle : _kNavy,
+              fontWeight:
+                  _selectedCategory == null ? FontWeight.w500 : FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 18),
 
@@ -901,37 +971,49 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
           const SizedBox(height: 16),
 
           // Post button
-          SizedBox(
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _isPosting ? null : _submit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _kNavy,
-                disabledBackgroundColor: _kNavy.withValues(alpha: 0.4),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _controller,
+            builder: (context, value, _) {
+              final canSubmit =
+                  !_isPosting &&
+                  _selectedCategory != null &&
+                  value.text.trim().isNotEmpty;
+
+              return SizedBox(
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: canSubmit ? _submit : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _kNavy,
+                    disabledBackgroundColor: _kNavy.withValues(alpha: 0.4),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  child:
+                      _isPosting
+                          ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                          : Text(
+                            canSubmit
+                                ? 'Post Anonymously'
+                                : 'Select category to continue',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                 ),
-              ),
-              child:
-                  _isPosting
-                      ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                      : const Text(
-                        'Post Anonymously',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-            ),
+              );
+            },
           ),
         ],
       ),
