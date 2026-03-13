@@ -67,12 +67,13 @@ class _AnoChatScreenState extends State<AnoChatScreen> {
     super.initState();
     _postsStream = _service.postsStream();
     _reactionSub = _service.myReactionsStream().listen((map) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _myReactions = map;
           // Firestore confirmed — clear pending deltas
           _countDeltas.clear();
         });
+      }
     });
     _loadIdentity();
   }

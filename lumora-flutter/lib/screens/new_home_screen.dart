@@ -203,7 +203,7 @@ class _GreetingCard extends StatelessWidget {
                         letterSpacing: 0.4,
                       ),
                     ),
-                    const Text(
+                    Text(
                       '45%',
                       style: TextStyle(
                         fontSize: 13,

@@ -106,34 +106,8 @@ class AnoChatService {
         .orderBy('createdAt', descending: true)
         .limit(50)
         .snapshots()
-        .asyncMap((snap) async {
-          final uids =
-              snap.docs
-                  .map((doc) => doc.data()['uid'] as String?)
-                  .whereType<String>()
-                  .toSet();
-
-          final usernames = <String, String>{};
-          await Future.wait(
-            uids.map((uid) async {
-              final userDoc = await _db.collection('users').doc(uid).get();
-              final username = userDoc.data()?['username'] as String?;
-              if (username != null && username.trim().isNotEmpty) {
-                usernames[uid] = username.trim();
-              }
-            }),
-          );
-
-          final all =
-              snap.docs
-                  .map(
-                    (doc) => _fromDoc(
-                      doc,
-                      resolvedAuthorName:
-                          usernames[doc.data()['uid'] as String? ?? ''],
-                    ),
-                  )
-                  .toList();
+        .map((snap) {
+          final all = snap.docs.map(_fromDoc).toList();
           if (category == null) return all;
           return all.where((p) => p.category == category).toList();
         });
