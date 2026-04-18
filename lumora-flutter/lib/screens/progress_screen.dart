@@ -11,7 +11,6 @@ const _kSubtitle = Color(0xFF4A6FA5);
 const _kCardBg = Colors.white;
 const _kBlue = Color(0xFF6BAED4);
 const _kIconBg = Color(0xFFD6ECFA);
-const _kBarTrack = Color(0xFFE0EAF4);
 
 const _kDotJournal = Colors.blue;
 const _kDotErp = Colors.orange;
@@ -65,89 +64,14 @@ class _ProgressScreenState extends State<ProgressScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _kBg,
-      appBar: AppBar(
-        title: const Text(
-          'My Journey',
-          style: TextStyle(color: _kNavy, fontWeight: FontWeight.w700),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── 1. Level and XP Display ───────────────────────────────────
-              StreamBuilder<GamificationStats>(
-                stream: GamificationService().getStatsStream(),
-                builder: (context, snapshot) {
-                  final stats = snapshot.data ?? const GamificationStats();
-                  final levelDisplay = GamificationUtils.getLevelDisplay(
-                    stats.xp,
-                  );
-                  final progress = GamificationUtils.getProgress(stats.xp);
-                  final nextLimit = GamificationUtils.getNextXpLimit(stats.xp);
-
-                  return GestureDetector(
-                    onTap: () => _showLevelJourneyModal(context, stats.xp),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: _kCardBg,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: const [
-                          BoxShadow(color: Color(0x0A000000), blurRadius: 8),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                levelDisplay,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  color: _kNavy,
-                                ),
-                              ),
-                              const Icon(Icons.stars_rounded, color: _kBlue),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: LinearProgressIndicator(
-                              value: progress,
-                              minHeight: 12,
-                              backgroundColor: _kBarTrack,
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                _kNavy,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              '${stats.xp} / $nextLimit XP (Tap to view journey)',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: _kSubtitle,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
+              // ── 1. Level and XP Header ───────────────────────────────────
+              _buildHeader(),
               const SizedBox(height: 24),
 
               // ── 2. Individual Streaks ──────────────────────────────────────
@@ -412,6 +336,84 @@ class _ProgressScreenState extends State<ProgressScreen> {
               ),
             );
           }).toList(),
+    );
+  }
+
+  Widget _buildHeader() {
+    return StreamBuilder<GamificationStats>(
+      stream: GamificationService().getStatsStream(),
+      builder: (context, snapshot) {
+        final stats = snapshot.data ?? const GamificationStats();
+        final levelDisplay = GamificationUtils.getLevelDisplay(stats.xp);
+        final progress = GamificationUtils.getProgress(stats.xp);
+        final nextLimit = GamificationUtils.getNextXpLimit(stats.xp);
+
+        return GestureDetector(
+          onTap: () => _showLevelJourneyModal(context, stats.xp),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            decoration: BoxDecoration(
+              color: _kBlue,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'My Journey',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Colors.white24,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.stars_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  levelDisplay,
+                  style: const TextStyle(fontSize: 14, color: Colors.white70),
+                ),
+                const SizedBox(height: 18),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 8,
+                    backgroundColor: Colors.white24,
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    '${stats.xp} / $nextLimit XP (Tap here)',
+                    style: const TextStyle(fontSize: 12, color: Colors.white70),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

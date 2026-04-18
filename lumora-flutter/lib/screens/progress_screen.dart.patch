@@ -1,0 +1,93 @@
+@@ -62,56 +62,12 @@
+   @override
+   Widget build(BuildContext context) {
+     return Scaffold(
+       backgroundColor: _kBg,
+-      appBar: AppBar(
+-        title: const Text(
+-          'My Journey',
+-          style: TextStyle(color: _kNavy, fontWeight: FontWeight.w700),
+-        ),
+-        backgroundColor: Colors.transparent,
+-        elevation: 0,
+-        centerTitle: true,
+-      ),
+       body: SafeArea(
+         child: SingleChildScrollView(
+-          child: Padding(
+-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
++          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+           child: Column(
+-            crossAxisAlignment: CrossAxisAlignment.stretch,
++            crossAxisAlignment: CrossAxisAlignment.stretch,
+             children: [
+               // ── 1. Level and XP Display ───────────────────────────────────
+-              StreamBuilder<GamificationStats>(
+-                stream: GamificationService().getStatsStream(),
+-                builder: (context, snapshot) {
+-                  final stats = snapshot.data ?? const GamificationStats();
+-                  final levelDisplay = GamificationUtils.getLevelDisplay(
+-                    stats.xp,
+-                  );
+-                  final progress = GamificationUtils.getProgress(stats.xp);
+-                  final nextLimit = GamificationUtils.getNextXpLimit(stats.xp);
+-
+-                  return GestureDetector(
+-                    onTap: () => _showLevelJourneyModal(context, stats.xp),
+-                    child: Container(
+-                      padding: const EdgeInsets.all(16),
+-                      decoration: BoxDecoration(
+-                        color: _kCardBg,
+-                        borderRadius: BorderRadius.circular(16),
+-                        boxShadow: const [
+-                          BoxShadow(color: Color(0x0A000000), blurRadius: 8),
+-                        ],
+-                      ),
+-                      child: Column(
+-                        crossAxisAlignment: CrossAxisAlignment.start,
+-                        children: [
+-                          Row(
+-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+-                            children: [
+-                              Text(
+-                                levelDisplay,
+-                                style: const TextStyle(
+-                                  fontSize: 16,
+-                                  fontWeight: FontWeight.w800,
+-                                  color: _kNavy,
+-                                ),
+-                              ),
+-                              const Icon(Icons.stars_rounded, color: _kBlue),
+-                            ],
+-                          ),
+-                          const SizedBox(height: 12),
+-                          ClipRRect(
+-                            borderRadius: BorderRadius.circular(8),
+-                            child: LinearProgressIndicator(
+-                              value: progress,
+-                              minHeight: 12,
+-                              backgroundColor: _kBarTrack,
+-                              valueColor: const AlwaysStoppedAnimation<Color>(
+-                                _kNavy,
+-                              ),
+-                            ),
+-                          ),
+-                          const SizedBox(height: 6),
+-                          Align(
+-                            alignment: Alignment.centerRight,
+-                            child: Text(
+-                              '${stats.xp} / $nextLimit XP (Tap to view journey)',
+-                              style: const TextStyle(
+-                                fontSize: 12,
+-                                color: _kSubtitle,
+-                              ),
+-                            ),
+-                          ),
+-                        ],
+-                      ),
+-                    ),
+-                  );
+-                },
+-              ),
++              _buildHeader(),
+               const SizedBox(height: 24),
