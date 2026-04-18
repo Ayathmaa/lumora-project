@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
+import 'package:lumora_flutter/services/gamification_service.dart';
+import 'package:lumora_flutter/services/gamification_utils.dart';
 import 'package:lumora_flutter/screens/login_screen.dart';
 import 'package:lumora_flutter/screens/upgrade_account_screen.dart';
 
@@ -242,39 +244,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ],
                     const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _kIconBg,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        'Level 3 – Blooming Soul',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: _kBlue,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // XP bar
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: const LinearProgressIndicator(
-                        value: 0.32,
-                        minHeight: 8,
-                        backgroundColor: _kBarTrack,
-                        valueColor: AlwaysStoppedAnimation<Color>(_kBlue),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      '320 / 1000 XP',
-                      style: TextStyle(fontSize: 11, color: _kSubtitle),
+                    StreamBuilder<GamificationStats>(
+                      stream: GamificationService().getStatsStream(),
+                      builder: (context, snapshot) {
+                        final stats =
+                            snapshot.data ?? const GamificationStats();
+                        final levelDisplay = GamificationUtils.getLevelDisplay(
+                          stats.xp,
+                        );
+                        final progress = GamificationUtils.getProgress(
+                          stats.xp,
+                        );
+                        final nextLimit = GamificationUtils.getNextXpLimit(
+                          stats.xp,
+                        );
+
+                        return Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _kIconBg,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                levelDisplay,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: _kBlue,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            // XP bar
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: LinearProgressIndicator(
+                                value: progress,
+                                minHeight: 8,
+                                backgroundColor: _kBarTrack,
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  _kBlue,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '${stats.xp} / $nextLimit XP',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: _kSubtitle,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),

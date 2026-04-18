@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
 import 'package:lumora_flutter/services/mood_service.dart';
 import 'package:lumora_flutter/services/quote_service.dart';
+import 'package:lumora_flutter/services/gamification_service.dart';
+import 'package:lumora_flutter/services/gamification_utils.dart';
 import 'package:lumora_flutter/screens/journal_screen.dart';
 import 'package:lumora_flutter/screens/erp_timer_screen.dart';
 import 'package:lumora_flutter/screens/progress_screen.dart';
@@ -268,26 +270,38 @@ class _GreetingCard extends StatelessWidget {
 
           const SizedBox(height: 2),
 
-          // Level label
-          const Text(
-            'Level 3 – Blooming Soul',
-            style: TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600,
-              color: _kNavy,
-            ),
-          ),
-          const SizedBox(height: 10),
+          // Level & XP Stream
+          StreamBuilder<GamificationStats>(
+            stream: GamificationService().getStatsStream(),
+            builder: (context, snapshot) {
+              final stats = snapshot.data ?? const GamificationStats();
+              final levelDisplay = GamificationUtils.getLevelDisplay(stats.xp);
+              final progress = GamificationUtils.getProgress(stats.xp);
 
-          // XP progress bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: const LinearProgressIndicator(
-              value: 0.32,
-              minHeight: 10,
-              backgroundColor: _kBarTrack,
-              valueColor: AlwaysStoppedAnimation<Color>(_kNavy),
-            ),
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    levelDisplay,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: _kNavy,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 10,
+                      backgroundColor: _kBarTrack,
+                      valueColor: const AlwaysStoppedAnimation<Color>(_kNavy),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),

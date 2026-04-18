@@ -14,6 +14,7 @@ class AnoPost {
   final int relateCount;
   final int encouragementCount;
   final bool requiresReview;
+  final bool isHidden;
 
   const AnoPost({
     required this.id,
@@ -26,6 +27,7 @@ class AnoPost {
     required this.relateCount,
     required this.encouragementCount,
     required this.requiresReview,
+    this.isHidden = false,
   });
 
   int get totalReactions => supportCount + relateCount + encouragementCount;
@@ -47,21 +49,6 @@ class AnoChatService {
     'Motivation',
   ];
 
-  // Compound phrases only — avoids flagging legitimate mental health discussion.
-  static const _flaggedPhrases = [
-    'kill myself',
-    'end my life',
-    'want to die',
-    'suicide',
-    'self-harm',
-    'self harm',
-    'hurt myself',
-    'harm myself',
-    'cut myself',
-    'ending it all',
-    'not worth living',
-  ];
-
   String get _uid {
     final user = _auth.currentUser;
     if (user == null) throw Exception('Not signed in.');
@@ -70,11 +57,6 @@ class AnoChatService {
 
   CollectionReference<Map<String, dynamic>> get _posts =>
       _db.collection('anoPosts');
-
-  bool _requiresReview(String content) {
-    final lower = content.toLowerCase();
-    return _flaggedPhrases.any((phrase) => lower.contains(phrase));
-  }
 
   AnoPost _fromDoc(
     QueryDocumentSnapshot<Map<String, dynamic>> doc, {
@@ -96,6 +78,7 @@ class AnoChatService {
       relateCount: (counts['relate'] as num?)?.toInt() ?? 0,
       encouragementCount: (counts['encouragement'] as num?)?.toInt() ?? 0,
       requiresReview: d['requiresReview'] as bool? ?? false,
+      isHidden: d['isHidden'] as bool? ?? false,
     );
   }
 
@@ -107,7 +90,8 @@ class AnoChatService {
         .limit(50)
         .snapshots()
         .map((snap) {
-          final all = snap.docs.map(_fromDoc).toList();
+          final all =
+              snap.docs.map(_fromDoc).where((p) => !p.isHidden).toList();
           if (category == null) return all;
           return all.where((p) => p.category == category).toList();
         });
@@ -137,7 +121,8 @@ class AnoChatService {
       'category': category,
       'createdAt': FieldValue.serverTimestamp(),
       'reactionCounts': {'support': 0, 'relate': 0, 'encouragement': 0},
-      'requiresReview': _requiresReview(trimmed),
+      'requiresReview': false, // Let Cloud Function update this
+      'isHidden': false, // Let Cloud Function update this
     });
   }
 
@@ -155,39 +140,26 @@ class AnoChatService {
   /// removes it (un-react). Calling with a different type swaps it.
   Future<void> toggleReaction(String postId, String reactionType) async {
     final uid = _uid;
-    final postRef = _posts.doc(postId);
     final reactionRef = _db
         .collection('users')
         .doc(uid)
         .collection('anoReactions')
         .doc(postId);
 
-    await _db.runTransaction((tx) async {
-      final snap = await tx.get(reactionRef);
-      if (snap.exists) {
-        final current = snap.data()!['type'] as String;
-        if (current == reactionType) {
-          // Same type — remove reaction.
-          tx.delete(reactionRef);
-          tx.update(postRef, {
-            'reactionCounts.$current': FieldValue.increment(-1),
-          });
-        } else {
-          // Different type — swap reaction.
-          tx.set(reactionRef, {'type': reactionType});
-          tx.update(postRef, {
-            'reactionCounts.$current': FieldValue.increment(-1),
-            'reactionCounts.$reactionType': FieldValue.increment(1),
-          });
-        }
+    final snap = await reactionRef.get();
+    if (snap.exists) {
+      final current = snap.data()!['type'] as String;
+      if (current == reactionType) {
+        // Same type — remove reaction.
+        await reactionRef.delete();
       } else {
-        // First reaction.
-        tx.set(reactionRef, {'type': reactionType});
-        tx.update(postRef, {
-          'reactionCounts.$reactionType': FieldValue.increment(1),
-        });
+        // Different type — swap reaction.
+        await reactionRef.set({'type': reactionType});
       }
-    });
+    } else {
+      // First reaction.
+      await reactionRef.set({'type': reactionType});
+    }
   }
 
   /// Streams all of the current user's reactions as Map<postId, reactionType>.

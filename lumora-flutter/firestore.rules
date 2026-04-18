@@ -26,18 +26,10 @@ service cloud.firestore {
       // ── users/{uid}/anoReactions/{postId} ────────────────────────────
       // A user may only manage their own reaction documents.
       match /anoReactions/{postId} {
-        allow read:   if isOwner(uid);
-        allow write:  if isOwner(uid)
-                      && (
-                           // set: must only contain a valid 'type' field
-                           !request.resource.data.diff(
-                             resource.data
-                           ).affectedKeys().hasAny(['type']) == false
-                           || request.resource.data.keys().hasOnly(['type'])
-                              && request.resource.data.type in
-                                   ['support', 'relate', 'encouragement']
-                         );
-        allow delete: if isOwner(uid);
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+                              && request.resource.data.keys().hasOnly(['type'])
+                              && request.resource.data.type in ['support', 'relate', 'encouragement'];
       }
 
       // ── users/{uid}/breathing_sessions ───────────────────────────────
@@ -76,6 +68,12 @@ service cloud.firestore {
                            .affectedKeys()
                            .hasOnly(['markedDates', 'updatedAt']);
         allow delete: if false;
+      }
+
+      // ── users/{uid}/user_stats/{statId} ──────────────────────────────
+      match /user_stats/{statId} {
+        allow read:   if isOwner(uid);
+        allow write:  if false; // only Cloud Functions can update gamification stats
       }
 
       // ── users/{uid}/cbt_journal ──────────────────────────────────────
@@ -132,7 +130,7 @@ service cloud.firestore {
                     && request.resource.data.uid == request.auth.uid
                     && request.resource.data.keys().hasAll(
                          ['uid', 'authorName', 'content', 'category',
-                          'createdAt', 'reactionCounts', 'requiresReview']
+                          'createdAt', 'reactionCounts', 'requiresReview', 'isHidden']
                        )
                     && request.resource.data.content.size() > 0
                     && request.resource.data.content.size() <= 400
@@ -141,26 +139,9 @@ service cloud.firestore {
                          'Seeking Advice', 'Motivation'
                        ];
 
-      // Update: clients may ONLY touch reactionCounts (via the service
-      // transaction). All other fields — uid, content, category, etc. —
-      // must remain unchanged.
-      allow update: if isSignedIn()
-                    && request.resource.data.diff(resource.data)
-                         .affectedKeys()
-                         .hasOnly(['reactionCounts'])
-                    // Each count must change by exactly +1 or -1 max.
-                    && (request.resource.data.reactionCounts.support
-                          - resource.data.reactionCounts.support) <= 1
-                    && (request.resource.data.reactionCounts.support
-                          - resource.data.reactionCounts.support) >= -1
-                    && (request.resource.data.reactionCounts.relate
-                          - resource.data.reactionCounts.relate) <= 1
-                    && (request.resource.data.reactionCounts.relate
-                          - resource.data.reactionCounts.relate) >= -1
-                    && (request.resource.data.reactionCounts.encouragement
-                          - resource.data.reactionCounts.encouragement) <= 1
-                    && (request.resource.data.reactionCounts.encouragement
-                          - resource.data.reactionCounts.encouragement) >= -1;
+      // Update: No longer allowed from client. Reactions and moderation are
+      // handled by Cloud Functions.
+      allow update: if false;
 
       // Delete: only the original author may delete their post.
       allow delete: if isSignedIn()
