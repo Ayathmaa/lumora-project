@@ -34,7 +34,7 @@ class ChartDataService {
       if (pre is num && post is num) {
         double preVal = pre.toDouble();
         double postVal = post.toDouble();
-        
+
         // As defined: percentage = (reduction / pre) * 100
         // Because anxiety is a bad thing, we invert it so the chart *decreases* when reduction is high
         // Remaining Anxiety = 100 - Reduction = (post / pre) * 100.
@@ -80,7 +80,7 @@ class ChartDataService {
         if (pre is num && post is num) {
           double preVal = pre.toDouble();
           double postVal = post.toDouble();
-          
+
           double percentage = preVal > 0 ? (postVal / preVal) * 100.0 : 0.0;
 
           final ts = data['timestamp'] as Timestamp?;

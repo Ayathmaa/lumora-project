@@ -51,6 +51,8 @@ class ProgressChartsWidget extends StatelessWidget {
       if (xInterval < dayMs) xInterval = dayMs; // Minimum 1 day diff
     }
 
+    double yInterval = maxY >= 100 ? 20.0 : (maxY >= 10 ? 2.0 : 1.0);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
@@ -119,6 +121,7 @@ class ProgressChartsWidget extends StatelessWidget {
                             spots: points.map((p) => FlSpot(p.x, p.y)).toList(),
                             isCurved: true,
                             curveSmoothness: 0.35,
+                            preventCurveOverShooting: true,
                             color: color,
                             barWidth: 3,
                             isStrokeCapRound: true,
@@ -187,10 +190,7 @@ class ProgressChartsWidget extends StatelessWidget {
                           leftTitles: AxisTitles(
                             sideTitles: SideTitles(
                               showTitles: true,
-                              interval:
-                                  maxY >= 10
-                                      ? 2
-                                      : 1, // Space Y vertically cleanly
+                              interval: yInterval, // Dynamic vertical spacing
                               reservedSize: 30,
                               getTitlesWidget: (value, meta) {
                                 // integer check just in case
@@ -215,7 +215,7 @@ class ProgressChartsWidget extends StatelessWidget {
                         gridData: FlGridData(
                           show: true,
                           drawVerticalLine: false,
-                          horizontalInterval: maxY >= 10 ? 2 : 1,
+                          horizontalInterval: yInterval,
                           getDrawingHorizontalLine: (value) {
                             return FlLine(
                               color: const Color(0xFFE2E8F0),
