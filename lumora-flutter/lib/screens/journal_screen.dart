@@ -44,6 +44,7 @@ class _JournalScreenState extends State<JournalScreen> {
       };
       final journalNumber = await _journalService.saveCbtEntry(
         answers: answers,
+        preAnxietyLevel: _emotionIntensity.round(),
         postAnxietyLevel: _postAnxiety.round(),
       );
       if (!mounted) return;
@@ -380,7 +381,7 @@ class _JournalScreenState extends State<JournalScreen> {
           ),
           const SizedBox(height: 10),
           const Text(
-            'What emotions did you feel? Rate the intensity below.',
+            'What emotions did you feel? Rate the pre-anxiety level below.',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
@@ -419,7 +420,7 @@ class _JournalScreenState extends State<JournalScreen> {
           Row(
             children: [
               const Text(
-                'Intensity',
+                'Pre-Anxiety Level',
                 style: TextStyle(
                   fontSize: 13,
                   color: _kSubtitle,
@@ -901,7 +902,7 @@ class _JournalEntryCardState extends State<_JournalEntryCard> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      'Anxiety ${entry.postAnxietyLevel}/10',
+                      'Anxiety ${entry.preAnxietyLevel} → ${entry.postAnxietyLevel}',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,

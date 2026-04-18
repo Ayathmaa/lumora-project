@@ -37,12 +37,14 @@ class ProgressService {
       final data = doc.data();
       final ts = data['createdAt'] as Timestamp?;
       if (ts != null) {
+        final preAnx = data['preAnxietyLevel'] ?? '?';
+        final postAnx = data['postAnxietyLevel'] ?? '?';
         allEvents.add(
           ActivityEvent(
             date: ts.toDate(),
             type: 'Journal',
             title: 'Journal Entry #${data['journalNumber'] ?? '?'}',
-            detail: 'Post-anxiety: ${data['postAnxietyLevel'] ?? '?'} / 10',
+            detail: 'Pre-anxiety: $preAnx/10 | Post-anxiety: $postAnx/10',
           ),
         );
       }

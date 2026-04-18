@@ -4,12 +4,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 /// A fully-parsed CBT journal entry, free of Firestore types.
 class JournalEntry {
   final int journalNumber;
+  final int preAnxietyLevel;
   final int postAnxietyLevel;
   final DateTime createdAt;
   final Map<int, String> answers; // Q1–Q8
 
   const JournalEntry({
     required this.journalNumber,
+    required this.preAnxietyLevel,
     required this.postAnxietyLevel,
     required this.createdAt,
     required this.answers,
@@ -24,6 +26,7 @@ class JournalEntry {
     }
     return JournalEntry(
       journalNumber: data['journalNumber'] as int? ?? 0,
+      preAnxietyLevel: data['preAnxietyLevel'] as int? ?? 0,
       postAnxietyLevel: data['postAnxietyLevel'] as int? ?? 0,
       createdAt: ts?.toDate() ?? DateTime.now(),
       answers: answers,
@@ -60,6 +63,7 @@ class JournalService {
   /// Returns the auto-assigned journal number (1-based count).
   Future<int> saveCbtEntry({
     required Map<int, String> answers, // key = question number (1–8)
+    required int preAnxietyLevel,
     required int postAnxietyLevel,
   }) async {
     final uid = _auth.currentUser?.uid;
@@ -76,6 +80,7 @@ class JournalService {
 
     final data = <String, dynamic>{
       'journalNumber': journalNumber,
+      'preAnxietyLevel': preAnxietyLevel,
       'postAnxietyLevel': postAnxietyLevel,
       'createdAt': FieldValue.serverTimestamp(),
     };
