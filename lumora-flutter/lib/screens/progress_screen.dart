@@ -4,6 +4,7 @@ import 'package:lumora_flutter/services/gamification_service.dart';
 import 'package:lumora_flutter/services/gamification_utils.dart';
 import 'package:lumora_flutter/services/progress_service.dart';
 import 'package:lumora_flutter/services/streak_calculator.dart';
+import 'package:lumora_flutter/widgets/mood_overview_chart.dart';
 
 const _kBg = Color(0xFFD0E4F4);
 const _kNavy = Color(0xFF1A3A5C);
@@ -94,33 +95,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
               const SizedBox(height: 24),
 
               // ── 3. Mood Overview Stub ──────────────────────────────────────
-              const Padding(
-                padding: EdgeInsets.only(left: 2),
-                child: Text(
-                  'Mood Overview',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: _kNavy,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _kCardBg,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Text(
-                  'Mood analytics coming soon...',
-                  style: TextStyle(
-                    color: _kSubtitle,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ),
+              // We'll let MoodOverviewWidget handle its own title instead of doing it here.
+              const MoodOverviewWidget(),
               const SizedBox(height: 24),
 
               // ── 4. Journey Calendar ────────────────────────────────────────
