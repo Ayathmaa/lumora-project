@@ -11,7 +11,7 @@ class MoodOverviewWidget extends StatefulWidget {
 
 class _MoodOverviewWidgetState extends State<MoodOverviewWidget> {
   final ChartDataService _chartService = ChartDataService();
-  
+
   Map<String, List<ChartDataPoint>>? _chartData;
   bool _isLoading = true;
 
@@ -42,8 +42,6 @@ class _MoodOverviewWidgetState extends State<MoodOverviewWidget> {
     }
 
     return ProgressChartsWidget(
-      journalPoints: _chartData!['journal'] ?? [],
-      erpPoints: _chartData!['erp'] ?? [],
       dailyAnxietyPoints: _chartData!['dailyAnxiety'] ?? [],
       dailyMoodPoints: _chartData!['dailyMood'] ?? [],
     );

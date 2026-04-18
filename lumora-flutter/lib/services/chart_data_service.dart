@@ -10,15 +10,11 @@ class ChartDataService {
     final uid = _auth.currentUser?.uid;
     if (uid == null) {
       return {
-        'journal': [],
-        'erp': [],
         'dailyAnxiety': [],
         'dailyMood': [],
       };
     }
 
-    List<ChartDataPoint> journalPoints = [];
-    List<ChartDataPoint> erpPoints = [];
     List<ChartDataPoint> dailyAnxietyPoints = [];
     List<ChartDataPoint> dailyMoodPoints = [];
 
@@ -33,15 +29,12 @@ class ChartDataService {
         .orderBy('createdAt')
         .get();
 
-    double journalIndex = 1;
     for (var doc in journals.docs) {
       final data = doc.data();
       final pre = data['preAnxietyLevel'];
       final post = data['postAnxietyLevel'];
       if (pre is num && post is num) {
         double avg = (pre + post) / 2;
-        journalPoints.add(ChartDataPoint(journalIndex, avg));
-        journalIndex++;
 
         final ts = data['createdAt'] as Timestamp?;
         if (ts != null) {
@@ -63,7 +56,6 @@ class ChartDataService {
         .orderBy('timestamp')
         .get();
 
-    double erpIndex = 1;
     for (var doc in erps.docs) {
       final data = doc.data();
       final isComplete = data['session_complete'] == 1; // Assuming 1 means complete
@@ -72,8 +64,6 @@ class ChartDataService {
         final post = data['post_anxiety'];
         if (pre is num && post is num) {
           double avg = (pre + post) / 2;
-          erpPoints.add(ChartDataPoint(erpIndex, avg));
-          erpIndex++;
 
           final ts = data['timestamp'] as Timestamp?;
           if (ts != null) {
@@ -121,8 +111,6 @@ class ChartDataService {
     dailyMoodPoints.sort((a, b) => a.x.compareTo(b.x));
 
     return {
-      'journal': journalPoints,
-      'erp': erpPoints,
       'dailyAnxiety': dailyAnxietyPoints,
       'dailyMood': dailyMoodPoints,
     };
