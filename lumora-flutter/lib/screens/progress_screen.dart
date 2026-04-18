@@ -75,12 +75,15 @@ class _ProgressScreenState extends State<ProgressScreen> {
               const SizedBox(height: 24),
 
               // ── 2. Individual Streaks ──────────────────────────────────────
-              const Text(
-                'Active Streaks',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: _kNavy,
+              const Padding(
+                padding: EdgeInsets.only(left: 2),
+                child: Text(
+                  'Active Streaks',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: _kNavy,
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -91,12 +94,15 @@ class _ProgressScreenState extends State<ProgressScreen> {
               const SizedBox(height: 24),
 
               // ── 3. Mood Overview Stub ──────────────────────────────────────
-              const Text(
-                'Mood Overview',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: _kNavy,
+              const Padding(
+                padding: EdgeInsets.only(left: 2),
+                child: Text(
+                  'Mood Overview',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: _kNavy,
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -118,12 +124,15 @@ class _ProgressScreenState extends State<ProgressScreen> {
               const SizedBox(height: 24),
 
               // ── 4. Journey Calendar ────────────────────────────────────────
-              const Text(
-                'Journey Calendar',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: _kNavy,
+              const Padding(
+                padding: EdgeInsets.only(left: 2),
+                child: Text(
+                  'Journey Calendar',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: _kNavy,
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -360,53 +369,82 @@ class _ProgressScreenState extends State<ProgressScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'My Journey',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Colors.white24,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.stars_rounded,
-                        color: Colors.white,
-                        size: 20,
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        'My Journey',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
                   levelDisplay,
-                  style: const TextStyle(fontSize: 14, color: Colors.white70),
+                  style: const TextStyle(color: Colors.white70, fontSize: 11.5),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.stars_rounded,
+                          color: Colors.white,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${stats.xp} XP',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      '$nextLimit XP goal (Tap here)',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: LinearProgressIndicator(
                     value: progress,
-                    minHeight: 8,
+                    minHeight: 6,
                     backgroundColor: Colors.white24,
                     valueColor: const AlwaysStoppedAnimation<Color>(
                       Colors.white,
                     ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    '${stats.xp} / $nextLimit XP (Tap here)',
-                    style: const TextStyle(fontSize: 12, color: Colors.white70),
                   ),
                 ),
               ],
@@ -462,7 +500,7 @@ class _StreakCard extends StatelessWidget {
                   '$streakLength Days',
                   style: const TextStyle(
                     fontSize: 15,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     color: _kNavy,
                   ),
                 ),
@@ -494,7 +532,7 @@ class _LevelJourneyModal extends StatelessWidget {
             'Your Level Journey',
             style: TextStyle(
               fontSize: 20,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w700,
               color: _kNavy,
             ),
           ),
