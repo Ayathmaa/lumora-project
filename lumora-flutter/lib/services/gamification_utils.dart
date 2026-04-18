@@ -49,4 +49,8 @@ class GamificationUtils {
     if (limit == base) return 1.0;
     return (xp - base) / (limit - base);
   }
+
+  static List<Map<int, String>> getAllLevels() {
+    return _levelsMap.entries.map((e) => {e.key: e.value}).toList();
+  }
 }
