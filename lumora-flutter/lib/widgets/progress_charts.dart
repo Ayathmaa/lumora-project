@@ -18,7 +18,13 @@ class ProgressChartsWidget extends StatelessWidget {
     required this.dailyMoodPoints,
   });
 
-  Widget _buildChart(String title, List<ChartDataPoint> points, Color color, double maxY, {bool isDays = false}) {
+  Widget _buildChart(
+    String title,
+    List<ChartDataPoint> points,
+    Color color,
+    double maxY, {
+    bool isDays = false,
+  }) {
     // Determine bounds and avoid crash if only 1 point exists
     double minX = points.isNotEmpty ? points.first.x : 0;
     double maxX = points.isNotEmpty ? points.last.x : 1;
@@ -51,7 +57,9 @@ class ProgressChartsWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF1F5F9)), // Very subtle border
+        border: Border.all(
+          color: const Color(0xFFF1F5F9),
+        ), // Very subtle border
         boxShadow: const [
           BoxShadow(
             color: Color(0x0A000000), // Slightly darker transparent shadow
@@ -69,10 +77,7 @@ class ProgressChartsWidget extends StatelessWidget {
               Container(
                 width: 10,
                 height: 10,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -88,137 +93,159 @@ class ProgressChartsWidget extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 32),
-          
+
           // Chart Layout
           SizedBox(
             height: 200,
-            child: points.isEmpty 
-                ? const Center(
-                    child: Text(
-                      "Not enough data to display yet.",
-                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-                    ),
-                  )
-                : LineChart(
-                    LineChartData(
-                      minY: 0,
-                      maxY: maxY,
-                      minX: minX,
-                      maxX: maxX,
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: points.map((p) => FlSpot(p.x, p.y)).toList(),
-                          isCurved: true,
-                          curveSmoothness: 0.35,
-                          color: color,
-                          barWidth: 3,
-                          isStrokeCapRound: true,
-                          dotData: FlDotData(
-                            show: true,
-                            getDotPainter: (spot, percent, barData, index) {
-                              return FlDotCirclePainter(
-                                radius: 4,
-                                color: color,
-                                strokeWidth: 2.5,
-                                strokeColor: Colors.white,
-                              );
-                            },
-                          ),
-                          belowBarData: BarAreaData(
-                            show: true,
-                            color: color.withValues(alpha: 0.15),
-                          ),
+            child:
+                points.isEmpty
+                    ? const Center(
+                      child: Text(
+                        "Not enough data to display yet.",
+                        style: TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 13,
                         ),
-                      ],
-                      titlesData: FlTitlesData(
-                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            interval: xInterval,
-                            reservedSize: 32,
-                            getTitlesWidget: (value, meta) {
-                              // Force integer steps for non-dates
-                              if (!isDays && value != value.toInt()) return const SizedBox.shrink();
-                              // Avoid edge duplication slightly out of bounds
-                              if (value < minX || value > maxX) return const SizedBox.shrink();
+                      ),
+                    )
+                    : LineChart(
+                      LineChartData(
+                        minY: 0,
+                        maxY: maxY,
+                        minX: minX,
+                        maxX: maxX,
+                        lineBarsData: [
+                          LineChartBarData(
+                            spots: points.map((p) => FlSpot(p.x, p.y)).toList(),
+                            isCurved: true,
+                            curveSmoothness: 0.35,
+                            color: color,
+                            barWidth: 3,
+                            isStrokeCapRound: true,
+                            dotData: FlDotData(
+                              show: true,
+                              getDotPainter: (spot, percent, barData, index) {
+                                return FlDotCirclePainter(
+                                  radius: 4,
+                                  color: color,
+                                  strokeWidth: 2.5,
+                                  strokeColor: Colors.white,
+                                );
+                              },
+                            ),
+                            belowBarData: BarAreaData(
+                              show: true,
+                              color: color.withValues(alpha: 0.15),
+                            ),
+                          ),
+                        ],
+                        titlesData: FlTitlesData(
+                          topTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          rightTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              interval: xInterval,
+                              reservedSize: 32,
+                              getTitlesWidget: (value, meta) {
+                                // Force integer steps for non-dates
+                                if (!isDays && value != value.toInt())
+                                  return const SizedBox.shrink();
+                                // Avoid edge duplication slightly out of bounds
+                                if (value < minX || value > maxX)
+                                  return const SizedBox.shrink();
 
-                              String text = '';
-                              if (isDays) {
-                                final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
-                                text = DateFormat('MM/dd').format(date);
-                              } else {
-                                text = value.toInt().toString();
-                              }
-                              return SideTitleWidget(
-                                axisSide: meta.axisSide,
-                                space: 8,
-                                child: Text(
-                                  text, 
-                                  style: const TextStyle(
-                                    fontSize: 10, 
-                                    color: Color(0xFF64748B), // Slate Grey
-                                    fontWeight: FontWeight.w600,
+                                String text = '';
+                                if (isDays) {
+                                  final date =
+                                      DateTime.fromMillisecondsSinceEpoch(
+                                        value.toInt(),
+                                      );
+                                  text = DateFormat('MM/dd').format(date);
+                                } else {
+                                  text = value.toInt().toString();
+                                }
+                                return SideTitleWidget(
+                                  axisSide: meta.axisSide,
+                                  space: 8,
+                                  child: Text(
+                                    text,
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Color(0xFF64748B), // Slate Grey
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
+                                );
+                              },
+                            ),
+                          ),
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              interval:
+                                  maxY >= 10
+                                      ? 2
+                                      : 1, // Space Y vertically cleanly
+                              reservedSize: 30,
+                              getTitlesWidget: (value, meta) {
+                                // integer check just in case
+                                if (value != value.toInt())
+                                  return const SizedBox.shrink();
+                                return SideTitleWidget(
+                                  axisSide: meta.axisSide,
+                                  space: 6,
+                                  child: Text(
+                                    value.toInt().toString(),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Color(0xFF64748B),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                         ),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            interval: maxY >= 10 ? 2 : 1, // Space Y vertically cleanly
-                            reservedSize: 30,
-                            getTitlesWidget: (value, meta) {
-                              // integer check just in case
-                              if (value != value.toInt()) return const SizedBox.shrink();
-                              return SideTitleWidget(
-                                axisSide: meta.axisSide,
-                                space: 6,
-                                child: Text(
-                                  value.toInt().toString(), 
-                                  style: const TextStyle(
-                                    fontSize: 11, 
-                                    color: Color(0xFF64748B), 
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                      gridData: FlGridData(
-                        show: true,
-                        drawVerticalLine: false,
-                        horizontalInterval: maxY >= 10 ? 2 : 1,
-                        getDrawingHorizontalLine: (value) {
-                          return FlLine(
-                            color: const Color(0xFFE2E8F0),
-                            strokeWidth: 1.5,
-                            dashArray: [6, 4],
-                          );
-                        },
-                      ),
-                      borderData: FlBorderData(show: false),
-                      lineTouchData: LineTouchData(
-                        touchTooltipData: LineTouchTooltipData(
-                          
-                          getTooltipItems: (touchedSpots) {
-                            return touchedSpots.map((spot) {
-                              final yStr = spot.y.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '');
-                              return LineTooltipItem(
-                                yStr,
-                                const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                              );
-                            }).toList();
+                        gridData: FlGridData(
+                          show: true,
+                          drawVerticalLine: false,
+                          horizontalInterval: maxY >= 10 ? 2 : 1,
+                          getDrawingHorizontalLine: (value) {
+                            return FlLine(
+                              color: const Color(0xFFE2E8F0),
+                              strokeWidth: 1.5,
+                              dashArray: [6, 4],
+                            );
                           },
                         ),
+                        borderData: FlBorderData(show: false),
+                        lineTouchData: LineTouchData(
+                          touchTooltipData: LineTouchTooltipData(
+                            getTooltipItems: (touchedSpots) {
+                              return touchedSpots.map((spot) {
+                                final yStr = spot.y
+                                    .toStringAsFixed(1)
+                                    .replaceAll(RegExp(r'\.0$'), '');
+                                return LineTooltipItem(
+                                  yStr,
+                                  const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                );
+                              }).toList();
+                            },
+                          ),
+                        ),
                       ),
                     ),
-                  ),
           ),
         ],
       ),
@@ -229,8 +256,20 @@ class ProgressChartsWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _buildChart("Daily Overall Anxiety", dailyAnxietyPoints, const Color(0xFFEF4444), 10, isDays: true),
-        _buildChart("Daily Mood (1-5 Level)", dailyMoodPoints, const Color(0xFF10B981), 5, isDays: true),
+        _buildChart(
+          "Anxiety Remaining (%)",
+          dailyAnxietyPoints,
+          const Color(0xFFEF4444),
+          100,
+          isDays: true,
+        ),
+        _buildChart(
+          "Daily Mood (1-5 Level)",
+          dailyMoodPoints,
+          const Color(0xFF10B981),
+          5,
+          isDays: true,
+        ),
       ],
     );
   }
