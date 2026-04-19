@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 
 /// A fully-parsed ERP session record, free of Firestore types.
 class ErpSession {
@@ -90,6 +91,8 @@ class ErpTimerService {
       'difficulty': difficulty,
       'trigger_types': triggerTypes,
       'timestamp': FieldValue.serverTimestamp(),
+      'clientCreatedAt': DateTime.now().toIso8601String(),
+      'dateKey': DateFormat('yyyy-MM-dd').format(DateTime.now()),
     };
 
     if (reflection != null && reflection.isNotEmpty) {

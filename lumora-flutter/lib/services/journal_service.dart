@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 
 /// A fully-parsed CBT journal entry, free of Firestore types.
 class JournalEntry {
@@ -83,6 +84,8 @@ class JournalService {
       'preAnxietyLevel': preAnxietyLevel,
       'postAnxietyLevel': postAnxietyLevel,
       'createdAt': FieldValue.serverTimestamp(),
+      'clientCreatedAt': DateTime.now().toIso8601String(),
+      'dateKey': DateFormat('yyyy-MM-dd').format(DateTime.now()),
     };
 
     // Store each answer as Q1, Q2 … Q8

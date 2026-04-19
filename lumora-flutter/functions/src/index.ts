@@ -338,22 +338,39 @@ export const onHabitMarkedDay = functions.firestore
  * across both CBT Journals and ERP Sessions, then saves it to a single 
  * aggregated daily document to save client reads.
  */
-async function updateDailyAnxietyAggregate(uid: string, dateObj: Date) {
-  const dateStr = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
+async function updateDailyAnxietyAggregate(uid: string, targetDateStr: string, dateObj: Date) {
+  // If targeting a local dateKey, we aggregate by targetDateStr
+  // However, we must also catch old documents that might only have UTC timestamps.
+  // The absolute safest enterprise approach is to query BOTH ways, then merge uniqueness using Document ID.
   
-  const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
-  const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
+  const startOfDay = new Date(`${targetDateStr}T00:00:00.000Z`);
+  const endOfDay = new Date(`${targetDateStr}T23:59:59.999Z`);
 
   let totalPercentage = 0;
   let count = 0;
+  const processedDocs = new Set<string>();
 
-  const journalsSnap = await db.collection(`users/${uid}/cbt_journal`)
+  // 1) Fetch CBT Journals
+  // a) Query by the new localized dateKey
+  const journalsDateKeySnap = await db.collection(`users/${uid}/cbt_journal`)
+    .where('dateKey', '==', targetDateStr)
+    .get();
+    
+  // b) Query by old legacy UTC boundary (fallback for old docs missing dateKey)
+  const journalsUtcSnap = await db.collection(`users/${uid}/cbt_journal`)
     .where('createdAt', '>=', startOfDay)
     .where('createdAt', '<=', endOfDay)
     .get();
 
-  journalsSnap.forEach((doc) => {
+  const processJournalDoc = (doc: FirebaseFirestore.DocumentSnapshot) => {
+    if (processedDocs.has(doc.id)) return;
+    processedDocs.add(doc.id);
     const data = doc.data();
+    if (!data) return;
+    
+    // Only count old UTC docs if they haven't explicitly set a different dateKey
+    if (data.dateKey && data.dateKey !== targetDateStr) return;
+
     if (typeof data.preAnxietyLevel === 'number' && typeof data.postAnxietyLevel === 'number') {
       const pre = data.preAnxietyLevel;
       const post = data.postAnxietyLevel;
@@ -361,15 +378,29 @@ async function updateDailyAnxietyAggregate(uid: string, dateObj: Date) {
       totalPercentage += percentage;
       count++;
     }
-  });
+  };
 
-  const erpsSnap = await db.collection(`users/${uid}/erp_sessions`)
+  journalsDateKeySnap.forEach(processJournalDoc);
+  journalsUtcSnap.forEach(processJournalDoc);
+
+  // 2) Fetch ERP Sessions
+  const erpsDateKeySnap = await db.collection(`users/${uid}/erp_sessions`)
+    .where('dateKey', '==', targetDateStr)
+    .get();
+
+  const erpsUtcSnap = await db.collection(`users/${uid}/erp_sessions`)
     .where('timestamp', '>=', startOfDay)
     .where('timestamp', '<=', endOfDay)
     .get();
 
-  erpsSnap.forEach((doc) => {
+  const processErpDoc = (doc: FirebaseFirestore.DocumentSnapshot) => {
+    if (processedDocs.has(doc.id)) return;
+    processedDocs.add(doc.id);
     const data = doc.data();
+    if (!data) return;
+    
+    if (data.dateKey && data.dateKey !== targetDateStr) return;
+
     if ((data.session_complete === 1 || data.session_complete === true) && 
         typeof data.pre_anxiety === 'number' && 
         typeof data.post_anxiety === 'number') {
@@ -379,15 +410,18 @@ async function updateDailyAnxietyAggregate(uid: string, dateObj: Date) {
       totalPercentage += percentage;
       count++;
     }
-  });
+  };
 
-  const analyticsRef = db.collection(`users/${uid}/daily_analytics`).doc(dateStr);
+  erpsDateKeySnap.forEach(processErpDoc);
+  erpsUtcSnap.forEach(processErpDoc);
+
+  const analyticsRef = db.collection(`users/${uid}/daily_analytics`).doc(targetDateStr);
   
   if (count > 0) {
     const dailyAverage = totalPercentage / count;
     await analyticsRef.set({
-      dateStr: dateStr,
-      timestamp: admin.firestore.Timestamp.fromDate(startOfDay), // Midnight timestamp for charts
+      dateStr: targetDateStr,
+      timestamp: admin.firestore.Timestamp.fromDate(startOfDay), // Midnight fallback
       anxietyRemainingPercent: dailyAverage,
       sessionsCount: count,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -401,10 +435,16 @@ export const aggregateJournalAnxiety = functions.firestore
   .document('users/{uid}/cbt_journal/{entryId}')
   .onWrite(async (change, context) => {
     const data = change.after.exists ? change.after.data() : change.before.data();
-    if (!data || !data.createdAt) return null;
+    if (!data) return null;
     
-    const dateObj = data.createdAt.toDate();
-    await updateDailyAnxietyAggregate(context.params.uid, dateObj);
+    let targetDateStr = data.dateKey;
+    const dateObj = data.createdAt ? data.createdAt.toDate() : new Date();
+    
+    if (!targetDateStr) {
+      targetDateStr = dateObj.toISOString().split('T')[0];
+    }
+    
+    await updateDailyAnxietyAggregate(context.params.uid, targetDateStr, dateObj);
     return null;
   });
 
@@ -412,9 +452,15 @@ export const aggregateErpAnxiety = functions.firestore
   .document('users/{uid}/erp_sessions/{sessionId}')
   .onWrite(async (change, context) => {
     const data = change.after.exists ? change.after.data() : change.before.data();
-    if (!data || !data.timestamp) return null;
+    if (!data) return null;
     
-    const dateObj = data.timestamp.toDate();
-    await updateDailyAnxietyAggregate(context.params.uid, dateObj);
+    let targetDateStr = data.dateKey;
+    const dateObj = data.timestamp ? data.timestamp.toDate() : new Date();
+    
+    if (!targetDateStr) {
+      targetDateStr = dateObj.toISOString().split('T')[0];
+    }
+    
+    await updateDailyAnxietyAggregate(context.params.uid, targetDateStr, dateObj);
     return null;
   });

@@ -376,33 +376,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 16),
               ],
 
-              // ── Stats row ─────────────────────────────────────────────────
-              Row(
-                children: [
-                  _MiniStat(
-                    label: 'Streak',
-                    value: '4 days',
-                    icon: Icons.local_fire_department_rounded,
-                    color: const Color(0xFFFF8C69),
-                  ),
-                  const SizedBox(width: 12),
-                  _MiniStat(
-                    label: 'Sessions',
-                    value: '12',
-                    icon: Icons.timer_rounded,
-                    color: _kBlue,
-                  ),
-                  const SizedBox(width: 12),
-                  _MiniStat(
-                    label: 'Journal',
-                    value: '9',
-                    icon: Icons.menu_book_rounded,
-                    color: const Color(0xFF80C9A4),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
               // ── Account settings ──────────────────────────────────────────
               _SectionCard(
                 title: 'Account',
