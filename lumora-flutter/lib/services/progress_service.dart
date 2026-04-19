@@ -21,26 +21,30 @@ class ProgressService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   Future<List<ActivityEvent>> fetchAllActivities() async {
-    final uid = _auth.currentUser?.uid;
-    if (uid == null) return [];
+    try {
+      final uid = _auth.currentUser?.uid;
+      if (uid == null) return [];
 
-    final snapshot =
-        await _firestore
-            .collection('users')
-            .doc(uid)
-            .collection('timeline_events')
-            .orderBy('date', descending: true)
-            .get();
+      final snapshot =
+          await _firestore
+              .collection('users')
+              .doc(uid)
+              .collection('timeline_events')
+              .orderBy('date', descending: true)
+              .get();
 
-    return snapshot.docs.map((doc) {
-      final data = doc.data();
-      final ts = data['date'] as Timestamp?;
-      return ActivityEvent(
-        date: ts != null ? ts.toDate() : DateTime.now(),
-        type: data['type'] as String? ?? 'Unknown',
-        title: data['title'] as String? ?? '',
-        detail: data['detail'] as String? ?? '',
-      );
-    }).toList();
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        final ts = data['date'] as Timestamp?;
+        return ActivityEvent(
+          date: ts != null ? ts.toDate() : DateTime.now(),
+          type: data['type'] as String? ?? 'Unknown',
+          title: data['title'] as String? ?? '',
+          detail: data['detail'] as String? ?? '',
+        );
+      }).toList();
+    } catch (e) {
+      return [];
+    }
   }
 }

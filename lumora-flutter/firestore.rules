@@ -76,6 +76,18 @@ service cloud.firestore {
         allow write:  if false; // only Cloud Functions can update gamification stats
       }
 
+      // ── users/{uid}/timeline_events/{eventId} ────────────────────────
+      match /timeline_events/{eventId} {
+        allow read:   if isOwner(uid);
+        allow write:  if false; // strictly managed by Cloud Functions
+      }
+
+      // ── users/{uid}/daily_analytics/{dateKey} ────────────────────────
+      match /daily_analytics/{dateKey} {
+        allow read:   if isOwner(uid);
+        allow write:  if false; // strictly managed by Cloud Functions
+      }
+
       // ── users/{uid}/cbt_journal ──────────────────────────────────────
       match /cbt_journal/{entryId} {
         allow read:   if isOwner(uid);

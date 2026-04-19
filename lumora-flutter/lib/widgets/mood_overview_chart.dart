@@ -22,12 +22,21 @@ class _MoodOverviewWidgetState extends State<MoodOverviewWidget> {
   }
 
   Future<void> _fetchData() async {
-    final data = await _chartService.fetchChartData();
-    if (mounted) {
-      setState(() {
-        _chartData = data;
-        _isLoading = false;
-      });
+    try {
+      final data = await _chartService.fetchChartData();
+      if (mounted) {
+        setState(() {
+          _chartData = data;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _chartData = {'dailyAnxiety': [], 'dailyMood': []};
+          _isLoading = false;
+        });
+      }
     }
   }
 
