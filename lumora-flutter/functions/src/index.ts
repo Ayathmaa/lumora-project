@@ -256,3 +256,98 @@ export const onHabitMarkedDay = functions.firestore
     return null;
   });
 
+
+// ── 4. Data Aggregation for Analytics (Optimized Dashboard) ───────────────
+
+/**
+ * Calculates the average 'Anxiety Remaining %' for a specific date 
+ * across both CBT Journals and ERP Sessions, then saves it to a single 
+ * aggregated daily document to save client reads.
+ */
+async function updateDailyAnxietyAggregate(uid: string, dateObj: Date) {
+  const dateStr = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
+  
+  // Set boundaries for the specific day to query
+  const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
+  const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
+
+  let totalPercentage = 0;
+  let count = 0;
+
+  // 1. Get Journal entries for that day
+  const journalsSnap = await db.collection(`users/${uid}/cbt_journal`)
+    .where('createdAt', '>=', startOfDay)
+    .where('createdAt', '<=', endOfDay)
+    .get();
+
+  journalsSnap.forEach((doc) => {
+    const data = doc.data();
+    if (typeof data.preAnxietyLevel === 'number' && typeof data.postAnxietyLevel === 'number') {
+      const pre = data.preAnxietyLevel;
+      const post = data.postAnxietyLevel;
+      const percentage = pre > 0 ? (post / pre) * 100.0 : 0.0;
+      totalPercentage += percentage;
+      count++;
+    }
+  });
+
+  // 2. Get ERP sessions for that day
+  const erpsSnap = await db.collection(`users/${uid}/erp_sessions`)
+    .where('timestamp', '>=', startOfDay)
+    .where('timestamp', '<=', endOfDay)
+    .get();
+
+  erpsSnap.forEach((doc) => {
+    const data = doc.data();
+    if ((data.session_complete === 1 || data.session_complete === true) && 
+        typeof data.pre_anxiety === 'number' && 
+        typeof data.post_anxiety === 'number') {
+      const pre = data.pre_anxiety;
+      const post = data.post_anxiety;
+      const percentage = pre > 0 ? (post / pre) * 100.0 : 0.0;
+      totalPercentage += percentage;
+      count++;
+    }
+  });
+
+  // 3. Save aggregated result to 'daily_analytics' collection
+  const analyticsRef = db.collection(`users/${uid}/daily_analytics`).doc(dateStr);
+  
+  if (count > 0) {
+    const dailyAverage = totalPercentage / count;
+    await analyticsRef.set({
+      dateStr: dateStr,
+      timestamp: admin.firestore.Timestamp.fromDate(startOfDay), // Midnight timestamp for charts
+      anxietyRemainingPercent: dailyAverage,
+      sessionsCount: count,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  } else {
+    // If user deleted their only session that day, remove the aggregate
+    await analyticsRef.delete().catch(() => {}); 
+  }
+}
+
+export const aggregateJournalAnxiety = functions.firestore
+  .document('users/{uid}/cbt_journal/{entryId}')
+  .onWrite(async (change, context) => {
+    // Determine the date to aggregate. Use updated document, fallback to deleted document.
+    const data = change.after.exists ? change.after.data() : change.before.data();
+    if (!data || !data.createdAt) return null;
+    
+    // Convert Firestore Timestamp to JS Date
+    const dateObj = data.createdAt.toDate();
+    await updateDailyAnxietyAggregate(context.params.uid, dateObj);
+    return null;
+  });
+
+export const aggregateErpAnxiety = functions.firestore
+  .document('users/{uid}/erp_sessions/{sessionId}')
+  .onWrite(async (change, context) => {
+    const data = change.after.exists ? change.after.data() : change.before.data();
+    if (!data || !data.timestamp) return null;
+    
+    const dateObj = data.timestamp.toDate();
+    await updateDailyAnxietyAggregate(context.params.uid, dateObj);
+    return null;
+  });

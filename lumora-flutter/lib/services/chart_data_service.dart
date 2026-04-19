@@ -15,110 +15,32 @@ class ChartDataService {
     List<ChartDataPoint> dailyAnxietyPoints = [];
     List<ChartDataPoint> dailyMoodPoints = [];
 
-    // Daily aggregations
-    Map<String, Map<String, dynamic>> dailyAnxietyMap = {};
-
-    // 1. Fetch Journals
-    final journals =
+    // 1. Directly fetch pre-aggregated Daily Analytics from our optimized Cloud Function setup!
+    // This turns potentially thousands of reads per user into just a couple of documents!
+    final analyticsDocs =
         await _firestore
             .collection('users')
             .doc(uid)
-            .collection('cbt_journal')
-            .orderBy('createdAt')
+            .collection('daily_analytics')
             .get();
 
-    for (var doc in journals.docs) {
+    for (var doc in analyticsDocs.docs) {
       final data = doc.data();
-      final pre = data['preAnxietyLevel'];
-      final post = data['postAnxietyLevel'];
-      if (pre is num && post is num) {
-        double preVal = pre.toDouble();
-        double postVal = post.toDouble();
+      final ts = data['timestamp'] as Timestamp?;
+      final remainingPercent = data['anxietyRemainingPercent'];
 
-        // As defined: percentage = (reduction / pre) * 100
-        // Because anxiety is a bad thing, we invert it so the chart *decreases* when reduction is high
-        // Remaining Anxiety = 100 - Reduction = (post / pre) * 100.
-        // If pre is 0, we can safely assume 0 anxiety remained.
-        double percentage = preVal > 0 ? (postVal / preVal) * 100.0 : 0.0;
-
-        final ts = data['createdAt'] as Timestamp?;
-        if (ts != null) {
-          final date = ts.toDate();
-          final midnight = DateTime(date.year, date.month, date.day);
-          final dKey =
-              '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-          dailyAnxietyMap.putIfAbsent(
-            dKey,
-            () => {
-              'sum': 0.0,
-              'count': 0,
-              'ts': midnight.millisecondsSinceEpoch.toDouble(),
-            },
-          );
-          dailyAnxietyMap[dKey]!['sum'] += percentage;
-          dailyAnxietyMap[dKey]!['count'] += 1;
-        }
-      }
-    }
-
-    // 2. Fetch ERP
-    final erps =
-        await _firestore
-            .collection('users')
-            .doc(uid)
-            .collection('erp_sessions')
-            .orderBy('timestamp')
-            .get();
-
-    for (var doc in erps.docs) {
-      final data = doc.data();
-      final isComplete =
-          data['session_complete'] == 1; // Assuming 1 means complete
-      if (isComplete) {
-        final pre = data['pre_anxiety'];
-        final post = data['post_anxiety'];
-        if (pre is num && post is num) {
-          double preVal = pre.toDouble();
-          double postVal = post.toDouble();
-
-          double percentage = preVal > 0 ? (postVal / preVal) * 100.0 : 0.0;
-
-          final ts = data['timestamp'] as Timestamp?;
-          if (ts != null) {
-            final date = ts.toDate();
-            final midnight = DateTime(date.year, date.month, date.day);
-            final dKey =
-                '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-            dailyAnxietyMap.putIfAbsent(
-              dKey,
-              () => {
-                'sum': 0.0,
-                'count': 0,
-                'ts': midnight.millisecondsSinceEpoch.toDouble(),
-              },
-            );
-            dailyAnxietyMap[dKey]!['sum'] += percentage;
-            dailyAnxietyMap[dKey]!['count'] += 1;
-          }
-        }
-      }
-    }
-
-    // 3. Process Daily Anxiety
-    final sortedKeys = dailyAnxietyMap.keys.toList()..sort();
-    for (var key in sortedKeys) {
-      final map = dailyAnxietyMap[key]!;
-      if (map['count'] > 0) {
+      if (ts != null && remainingPercent is num) {
         dailyAnxietyPoints.add(
-          ChartDataPoint(map['ts'], map['sum'] / map['count']),
+          ChartDataPoint(
+            ts.toDate().millisecondsSinceEpoch.toDouble(),
+            remainingPercent.toDouble(),
+          ),
         );
       }
     }
-    dailyAnxietyPoints.sort(
-      (a, b) => a.x.compareTo(b.x),
-    ); // Guarantee clean chronological line
+    dailyAnxietyPoints.sort((a, b) => a.x.compareTo(b.x));
 
-    // 4. Fetch Daily Moods
+    // 2. Fetch Daily Moods
     final moods =
         await _firestore
             .collection('users')
