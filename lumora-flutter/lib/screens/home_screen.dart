@@ -6,6 +6,8 @@ import 'package:lumora_flutter/services/mood_service.dart';
 import 'package:lumora_flutter/services/quote_service.dart';
 import 'package:lumora_flutter/services/gamification_service.dart';
 import 'package:lumora_flutter/services/gamification_utils.dart';
+import 'package:lumora_flutter/services/insights_service.dart';
+
 import 'package:lumora_flutter/screens/journal_screen.dart';
 import 'package:lumora_flutter/screens/erp_timer_screen.dart';
 import 'package:lumora_flutter/screens/progress_screen.dart';
@@ -170,6 +172,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
               // ── quote of the day ──────────────────────────────────────────
               const _QuoteCard(),
+              const SizedBox(height: 14),
+
+              // ── insights ──────────────────────────────────────────────────
+              const _InsightsCard(),
               const SizedBox(height: 14),
 
               // ── daily mood log (visible from 7 PM) ───────────────────────
@@ -677,4 +683,89 @@ class _Feature {
   final IconData icon;
   final String label;
   const _Feature({required this.icon, required this.label});
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  Insights Card
+// ════════════════════════════════════════════════════════════════════════════
+class _InsightsCard extends StatefulWidget {
+  const _InsightsCard();
+
+  @override
+  State<_InsightsCard> createState() => _InsightsCardState();
+}
+
+class _InsightsCardState extends State<_InsightsCard> {
+  final _service = InsightsService();
+  List<Insight>? _insights;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchInsights();
+  }
+
+  Future<void> _fetchInsights() async {
+    final insights = await _service.getInsights();
+    if (mounted) {
+      setState(() => _insights = insights);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_insights == null) {
+      return const SizedBox(
+        height: 60,
+        child: Center(
+          child: CircularProgressIndicator(color: _kBlue, strokeWidth: 2),
+        ),
+      );
+    }
+
+    if (_insights!.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'Your Insights',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: _kNavy,
+            ),
+          ),
+        ),
+        ..._insights!.map((insight) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: insight.bgColor,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Icon(insight.icon, color: insight.color, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    insight.text,
+                    style: TextStyle(
+                      color: insight.color,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
 }

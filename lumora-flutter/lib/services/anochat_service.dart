@@ -82,18 +82,20 @@ class AnoChatService {
     );
   }
 
-  /// Streams the latest 50 posts. Client-side category filter avoids needing
-  /// a composite Firestore index for MVP.
+  /// Streams the latest 50 posts. Uses server-side composite indexes for performance.
   Stream<List<AnoPost>> postsStream({String? category}) {
-    return _posts
+    Query<Map<String, dynamic>> query = _posts;
+
+    if (category != null) {
+      query = query.where('category', isEqualTo: category);
+    }
+
+    return query
         .orderBy('createdAt', descending: true)
         .limit(50)
         .snapshots()
         .map((snap) {
-          final all =
-              snap.docs.map(_fromDoc).where((p) => !p.isHidden).toList();
-          if (category == null) return all;
-          return all.where((p) => p.category == category).toList();
+          return snap.docs.map(_fromDoc).where((p) => !p.isHidden).toList();
         });
   }
 

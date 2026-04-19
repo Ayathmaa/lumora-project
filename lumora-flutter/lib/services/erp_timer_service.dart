@@ -102,16 +102,53 @@ class ErpTimerService {
     await collection.add(data);
   }
 
-  /// Returns a live stream of parsed ERP sessions ordered by most recent first.
-  Stream<List<ErpSession>>? getSessionHistory() {
-    return _sessionsCollection
-        ?.orderBy('timestamp', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) =>
-              snapshot.docs
-                  .map((doc) => ErpSession._fromMap(doc.data()))
-                  .toList(),
-        );
+  /// Returns a paginator for chunking historical ERP session entries.
+  ErpPaginator? getPaginator() {
+    final collection = _sessionsCollection;
+    if (collection == null) return null;
+    return ErpPaginator(collection);
+  }
+}
+
+/// A dedicated paginator to fetch ERP sessions efficiently in chunks.
+class ErpPaginator {
+  final CollectionReference<Map<String, dynamic>> _collection;
+
+  DocumentSnapshot? _lastDoc;
+  bool _hasMore = true;
+  bool _isFetching = false;
+
+  ErpPaginator(this._collection);
+
+  bool get hasMore => _hasMore;
+  bool get isFetching => _isFetching;
+
+  /// Fetches the next page of up to 20 sessions.
+  Future<List<ErpSession>> fetchNext() async {
+    if (!_hasMore || _isFetching) return [];
+    _isFetching = true;
+
+    try {
+      var query = _collection.orderBy('timestamp', descending: true).limit(20);
+
+      if (_lastDoc != null) {
+        query = query.startAfterDocument(_lastDoc!);
+      }
+
+      final snap = await query.get();
+      if (snap.docs.isEmpty) {
+        _hasMore = false;
+        return [];
+      }
+
+      _lastDoc = snap.docs.last;
+      if (snap.docs.length < 20) {
+        _hasMore = false;
+      }
+
+      return snap.docs.map((doc) => ErpSession._fromMap(doc.data())).toList();
+    } finally {
+      _isFetching = false;
+    }
   }
 }

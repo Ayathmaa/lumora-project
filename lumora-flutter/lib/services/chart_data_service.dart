@@ -28,44 +28,27 @@ class ChartDataService {
       final data = doc.data();
       final ts = data['timestamp'] as Timestamp?;
       final remainingPercent = data['anxietyRemainingPercent'];
+      final moodScore = data['moodScore'];
 
-      if (ts != null && remainingPercent is num) {
-        dailyAnxietyPoints.add(
-          ChartDataPoint(
-            ts.toDate().millisecondsSinceEpoch.toDouble(),
-            remainingPercent.toDouble(),
-          ),
-        );
-      }
-    }
-    dailyAnxietyPoints.sort((a, b) => a.x.compareTo(b.x));
+      if (ts != null) {
+        final double epoch = ts.toDate().millisecondsSinceEpoch.toDouble();
 
-    // 2. Fetch Daily Moods
-    final moods =
-        await _firestore
-            .collection('users')
-            .doc(uid)
-            .collection('daily_moods')
-            .get();
+        // Add Anxiety Point
+        if (remainingPercent is num) {
+          dailyAnxietyPoints.add(
+            ChartDataPoint(epoch, remainingPercent.toDouble()),
+          );
+        }
 
-    for (var doc in moods.docs) {
-      final key = doc.id; // 'yyyy-MM-dd'
-      if (key.length == 10) {
-        final d = DateTime.tryParse(key);
-        if (d != null) {
-          final midnight = DateTime(d.year, d.month, d.day);
-          final score = doc.data()['score'];
-          if (score is num) {
-            dailyMoodPoints.add(
-              ChartDataPoint(
-                midnight.millisecondsSinceEpoch.toDouble(),
-                score.toDouble(),
-              ),
-            );
-          }
+        // Add Mood Point
+        if (moodScore is num) {
+          dailyMoodPoints.add(ChartDataPoint(epoch, moodScore.toDouble()));
         }
       }
     }
+
+    // Sort both datasets chronologically
+    dailyAnxietyPoints.sort((a, b) => a.x.compareTo(b.x));
     dailyMoodPoints.sort((a, b) => a.x.compareTo(b.x));
 
     return {'dailyAnxiety': dailyAnxietyPoints, 'dailyMood': dailyMoodPoints};

@@ -718,13 +718,60 @@ const _kQuestionLabels = [
   'Balanced replacement thought',
 ];
 
-class _JournalHistoryScreen extends StatelessWidget {
+class _JournalHistoryScreen extends StatefulWidget {
   const _JournalHistoryScreen();
 
   @override
-  Widget build(BuildContext context) {
-    final historyStream = JournalService().getHistory();
+  State<_JournalHistoryScreen> createState() => _JournalHistoryScreenState();
+}
 
+class _JournalHistoryScreenState extends State<_JournalHistoryScreen> {
+  final _scrollController = ScrollController();
+  final List<JournalEntry> _entries = [];
+
+  JournalPaginator? _paginator;
+  bool _isLoading = true;
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _paginator = JournalService().getPaginator();
+    _loadMore();
+
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 200) {
+        _loadMore();
+      }
+    });
+  }
+
+  Future<void> _loadMore() async {
+    if (_paginator == null || !_paginator!.hasMore || _paginator!.isFetching)
+      return;
+
+    try {
+      final newEntries = await _paginator!.fetchNext();
+      if (mounted) {
+        setState(() {
+          _entries.addAll(newEntries);
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _hasError = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _kBg,
       body: SafeArea(
@@ -767,57 +814,58 @@ class _JournalHistoryScreen extends StatelessWidget {
             // List
             Expanded(
               child:
-                  historyStream == null
+                  _paginator == null
                       ? const Center(child: Text('Not signed in'))
-                      : StreamBuilder<List<JournalEntry>>(
-                        stream: historyStream,
-                        builder: (context, snap) {
-                          if (snap.connectionState == ConnectionState.waiting) {
-                            return const Center(
-                              child: CircularProgressIndicator(color: _kBlue),
-                            );
-                          }
-                          final entries = snap.data ?? [];
-                          if (entries.isEmpty) {
-                            return Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.book_outlined,
-                                    size: 52,
-                                    color: _kSubtitle.withValues(alpha: 0.4),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  const Text(
-                                    'No journal entries yet.',
-                                    style: TextStyle(
-                                      color: _kSubtitle,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    'Complete a reflection to see it here.',
-                                    style: TextStyle(
-                                      color: _kSubtitle,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
+                      : _hasError
+                      ? const Center(
+                        child: Text(
+                          'Error loading history',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      )
+                      : _entries.isEmpty && !_isLoading
+                      ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.book_outlined,
+                              size: 52,
+                              color: _kSubtitle.withValues(alpha: 0.4),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'No journal entries yet.',
+                              style: TextStyle(
+                                color: _kSubtitle,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Complete a reflection to see it here.',
+                              style: TextStyle(color: _kSubtitle, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      )
+                      : ListView.separated(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                        itemCount:
+                            _entries.length + (_paginator!.hasMore ? 1 : 0),
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, i) {
+                          if (i == _entries.length) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: Center(
+                                child: CircularProgressIndicator(color: _kBlue),
                               ),
                             );
                           }
-                          return ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-                            itemCount: entries.length,
-                            separatorBuilder:
-                                (_, __) => const SizedBox(height: 12),
-                            itemBuilder:
-                                (context, i) =>
-                                    _JournalEntryCard(entry: entries[i]),
-                          );
+                          return _JournalEntryCard(entry: _entries[i]);
                         },
                       ),
             ),

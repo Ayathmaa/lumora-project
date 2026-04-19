@@ -457,59 +457,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ── Mini stat tile ────────────────────────────────────────────────────────
-class _MiniStat extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  const _MiniStat({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: _kCardBg,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x10000000),
-              blurRadius: 6,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(height: 6),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: _kNavy,
-              ),
-            ),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 11, color: _kSubtitle),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // ── Section card helper ───────────────────────────────────────────────────
 class _SectionCard extends StatelessWidget {
   final String title;

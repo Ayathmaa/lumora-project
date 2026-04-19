@@ -98,22 +98,59 @@ class JournalService {
     return journalNumber;
   }
 
-  /// Returns all past journal entries for the current user, most recent first.
-  /// Returns null if the user is not signed in.
-  Stream<List<JournalEntry>>? getHistory() {
+  /// Returns a paginator for chunking historical journal entries.
+  JournalPaginator? getPaginator() {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return null;
-    return _firestore
-        .collection('users')
-        .doc(uid)
-        .collection('cbt_journal')
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map(
-          (snap) =>
-              snap.docs
-                  .map((doc) => JournalEntry._fromMap(doc.data()))
-                  .toList(),
-        );
+    return JournalPaginator(_firestore, uid);
+  }
+}
+
+/// A dedicated paginator to fetch journal entries efficiently in chunks.
+class JournalPaginator {
+  final FirebaseFirestore _firestore;
+  final String _uid;
+
+  DocumentSnapshot? _lastDoc;
+  bool _hasMore = true;
+  bool _isFetching = false;
+
+  JournalPaginator(this._firestore, this._uid);
+
+  bool get hasMore => _hasMore;
+  bool get isFetching => _isFetching;
+
+  /// Fetches the next page of up to 20 entries.
+  Future<List<JournalEntry>> fetchNext() async {
+    if (!_hasMore || _isFetching) return [];
+    _isFetching = true;
+
+    try {
+      var query = _firestore
+          .collection('users')
+          .doc(_uid)
+          .collection('cbt_journal')
+          .orderBy('createdAt', descending: true)
+          .limit(20);
+
+      if (_lastDoc != null) {
+        query = query.startAfterDocument(_lastDoc!);
+      }
+
+      final snap = await query.get();
+      if (snap.docs.isEmpty) {
+        _hasMore = false;
+        return [];
+      }
+
+      _lastDoc = snap.docs.last;
+      if (snap.docs.length < 20) {
+        _hasMore = false;
+      }
+
+      return snap.docs.map((doc) => JournalEntry._fromMap(doc.data())).toList();
+    } finally {
+      _isFetching = false;
+    }
   }
 }

@@ -464,3 +464,69 @@ export const aggregateErpAnxiety = functions.firestore
     await updateDailyAnxietyAggregate(context.params.uid, targetDateStr, dateObj);
     return null;
   });
+
+export const onMoodLogged = functions.firestore
+  .document('users/{uid}/daily_moods/{dateKey}')
+  .onWrite(async (change, context) => {
+    const { uid, dateKey } = context.params;
+    const analyticsRef = db.collection(`users/${uid}/daily_analytics`).doc(dateKey);
+
+    if (!change.after.exists) {
+      // Mood was deleted
+      // We use merge: true so we don't accidentally delete anxiety info if it exists.
+      await analyticsRef.set({
+        moodScore: admin.firestore.FieldValue.delete(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      return null;
+    }
+
+    const data = change.after.data();
+    if (!data) return null;
+
+    const startOfDay = new Date(`${dateKey}T00:00:00.000Z`);
+
+    // Merge the daily mood score into the daily analytics document!
+    await analyticsRef.set({
+      dateStr: dateKey,
+      timestamp: admin.firestore.Timestamp.fromDate(startOfDay), // Safety timestamp
+      moodScore: data.score,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    return null;
+  });
+
+// Task 2: GDPR User Data Deletion Engine (Auth Triggers)
+// Automatically purges all deeply-nested subcollections when a user is deleted from Firebase Auth.
+async function deleteCollectionInBatches(collectionRef: FirebaseFirestore.CollectionReference) {
+  const batchSize = 300;
+  let snapshot = await collectionRef.limit(batchSize).get();
+  while (snapshot.size > 0) {
+    const batch = admin.firestore().batch();
+    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+    snapshot = await collectionRef.limit(batchSize).get();
+  }
+}
+
+export const onUserAccountDeleted = functions.auth.user().onDelete(async (user) => {
+  const uid = user.uid;
+  const userRef = db.collection('users').doc(uid);
+  
+  try {
+    // 1. Fetch all subcollections dynamically (cbt_journal, erp_sessions, daily_analytics, etc.)
+    const subcollections = await userRef.listCollections();
+    
+    // 2. Delete all documents inside each subcollection in 300-doc batches
+    for (const subcol of subcollections) {
+      await deleteCollectionInBatches(subcol);
+    }
+    
+    // 3. Delete the parent user document itself
+    await userRef.delete();
+    console.log(`Successfully purged all GDPR user data for UID: ${uid}`);
+  } catch (error) {
+    console.error(`Fatal error purging user data for UID ${uid}:`, error);
+  }
+});

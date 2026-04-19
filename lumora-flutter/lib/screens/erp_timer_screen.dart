@@ -976,14 +976,61 @@ class _CircleBtn extends StatelessWidget {
 }
 
 // ── Session History Screen ────────────────────────────────────────────────
-class _ErpSessionHistoryScreen extends StatelessWidget {
+class _ErpSessionHistoryScreen extends StatefulWidget {
   const _ErpSessionHistoryScreen();
 
   @override
-  Widget build(BuildContext context) {
-    final service = ErpTimerService();
-    final sessionsStream = service.getSessionHistory();
+  State<_ErpSessionHistoryScreen> createState() =>
+      _ErpSessionHistoryScreenState();
+}
 
+class _ErpSessionHistoryScreenState extends State<_ErpSessionHistoryScreen> {
+  final _scrollController = ScrollController();
+  final List<ErpSession> _sessions = [];
+
+  ErpPaginator? _paginator;
+  bool _isLoading = true;
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _paginator = ErpTimerService().getPaginator();
+    _loadMore();
+
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 200) {
+        _loadMore();
+      }
+    });
+  }
+
+  Future<void> _loadMore() async {
+    if (_paginator == null || !_paginator!.hasMore || _paginator!.isFetching)
+      return;
+
+    try {
+      final newSessions = await _paginator!.fetchNext();
+      if (mounted) {
+        setState(() {
+          _sessions.addAll(newSessions);
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _hasError = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _kBg,
       body: SafeArea(
@@ -1026,168 +1073,165 @@ class _ErpSessionHistoryScreen extends StatelessWidget {
             // List
             Expanded(
               child:
-                  sessionsStream == null
+                  _paginator == null
                       ? const Center(child: Text('Not signed in'))
-                      : StreamBuilder<List<ErpSession>>(
-                        stream: sessionsStream,
-                        builder: (context, snap) {
-                          if (snap.connectionState == ConnectionState.waiting) {
-                            return const Center(
-                              child: CircularProgressIndicator(color: _kBlue),
-                            );
-                          }
-                          final sessions = snap.data ?? [];
-                          if (sessions.isEmpty) {
-                            return const Center(
-                              child: Text(
-                                'No sessions yet.',
-                                style: TextStyle(color: _kSubtitle),
+                      : _hasError
+                      ? const Center(
+                        child: Text(
+                          'Error loading history',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      )
+                      : _sessions.isEmpty && !_isLoading
+                      ? const Center(
+                        child: Text(
+                          'No sessions yet.',
+                          style: TextStyle(color: _kSubtitle),
+                        ),
+                      )
+                      : ListView.separated(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                        itemCount:
+                            _sessions.length + (_paginator!.hasMore ? 1 : 0),
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (context, i) {
+                          if (i == _sessions.length) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: Center(
+                                child: CircularProgressIndicator(color: _kBlue),
                               ),
                             );
                           }
-                          return ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                            itemCount: sessions.length,
-                            separatorBuilder:
-                                (_, __) => const SizedBox(height: 10),
-                            itemBuilder: (context, i) {
-                              final s = sessions[i];
-                              return Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: _kCardBg,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Color(0x0A000000),
-                                      blurRadius: 6,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ],
+                          final s = _sessions[i];
+                          return Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: _kCardBg,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x0A000000),
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          s.date,
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w700,
-                                            color: _kNavy,
-                                          ),
-                                        ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color:
-                                                s.complete
-                                                    ? const Color(0xFFD6F0E0)
-                                                    : const Color(0xFFFFE4E4),
-                                            borderRadius: BorderRadius.circular(
-                                              20,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            s.complete
-                                                ? 'Completed'
-                                                : 'Incomplete',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                              color:
-                                                  s.complete
-                                                      ? const Color(0xFF2E7D52)
-                                                      : const Color(0xFFB02020),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Row(
-                                      children: [
-                                        _HistoryStat(
-                                          label: 'Duration',
-                                          value: '${s.durationMins} min',
-                                        ),
-                                        const SizedBox(width: 16),
-                                        _HistoryStat(
-                                          label: 'Pre',
-                                          value: '${s.preAnxiety}/10',
-                                        ),
-                                        const SizedBox(width: 16),
-                                        _HistoryStat(
-                                          label: 'Post',
-                                          value: '${s.postAnxiety}/10',
-                                        ),
-                                        if (s.difficulty != null) ...[
-                                          const SizedBox(width: 16),
-                                          _HistoryStat(
-                                            label: 'Difficulty',
-                                            value: s.difficulty!,
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                    if (s.triggerTypes.isNotEmpty) ...[
-                                      const SizedBox(height: 8),
-                                      Wrap(
-                                        spacing: 6,
-                                        runSpacing: 6,
-                                        children:
-                                            s.triggerTypes
-                                                .map(
-                                                  (t) => Container(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 10,
-                                                          vertical: 4,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color: _kIconBg,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            20,
-                                                          ),
-                                                    ),
-                                                    child: Text(
-                                                      t,
-                                                      style: const TextStyle(
-                                                        fontSize: 11,
-                                                        color: _kBlue,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                )
-                                                .toList(),
+                                    Text(
+                                      s.date,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: _kNavy,
                                       ),
-                                    ],
-                                    if (s.reflection?.isNotEmpty == true) ...[
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        s.reflection!,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: _kSubtitle,
-                                          fontStyle: FontStyle.italic,
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            s.complete
+                                                ? const Color(0xFFD6F0E0)
+                                                : const Color(0xFFFFE4E4),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        s.complete ? 'Completed' : 'Incomplete',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color:
+                                              s.complete
+                                                  ? const Color(0xFF2E7D52)
+                                                  : const Color(0xFFB02020),
                                         ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    _HistoryStat(
+                                      label: 'Duration',
+                                      value: '${s.durationMins} min',
+                                    ),
+                                    const SizedBox(width: 16),
+                                    _HistoryStat(
+                                      label: 'Pre',
+                                      value: '${s.preAnxiety}/10',
+                                    ),
+                                    const SizedBox(width: 16),
+                                    _HistoryStat(
+                                      label: 'Post',
+                                      value: '${s.postAnxiety}/10',
+                                    ),
+                                    if (s.difficulty != null) ...[
+                                      const SizedBox(width: 16),
+                                      _HistoryStat(
+                                        label: 'Difficulty',
+                                        value: s.difficulty!,
                                       ),
                                     ],
                                   ],
                                 ),
-                              );
-                            },
+                                if (s.triggerTypes.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 6,
+                                    runSpacing: 6,
+                                    children:
+                                        s.triggerTypes
+                                            .map(
+                                              (t) => Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 4,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: _kIconBg,
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
+                                                ),
+                                                child: Text(
+                                                  t,
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    color: _kBlue,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ),
+                                            )
+                                            .toList(),
+                                  ),
+                                ],
+                                if (s.reflection?.isNotEmpty == true) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    s.reflection!,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: _kSubtitle,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
+                            ),
                           );
                         },
                       ),
