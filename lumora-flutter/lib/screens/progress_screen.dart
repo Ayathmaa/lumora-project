@@ -3,7 +3,6 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:lumora_flutter/services/gamification_service.dart';
 import 'package:lumora_flutter/services/gamification_utils.dart';
 import 'package:lumora_flutter/services/progress_service.dart';
-import 'package:lumora_flutter/services/streak_calculator.dart';
 import 'package:lumora_flutter/widgets/mood_overview_chart.dart';
 
 const _kBg = Color(0xFFD0E4F4);
@@ -29,7 +28,6 @@ class _ProgressScreenState extends State<ProgressScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   List<ActivityEvent> _allEvents = [];
-  bool _isLoadingEvents = true;
 
   @override
   void initState() {
@@ -43,7 +41,6 @@ class _ProgressScreenState extends State<ProgressScreen> {
     if (mounted) {
       setState(() {
         _allEvents = events;
-        _isLoadingEvents = false;
       });
     }
   }
@@ -88,9 +85,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              _isLoadingEvents
-                  ? const Center(child: CircularProgressIndicator())
-                  : _buildStreaksGrid(),
+              _buildStreaksGrid(),
 
               const SizedBox(height: 24),
 
@@ -184,37 +179,41 @@ class _ProgressScreenState extends State<ProgressScreen> {
   }
 
   Widget _buildStreaksGrid() {
-    final journalStreak = StreakCalculator.computeStreak(
-      _allEvents.where((e) => e.type == 'Journal').toList(),
-    );
-    final erpStreak = StreakCalculator.computeStreak(
-      _allEvents.where((e) => e.type == 'ERP').toList(),
-    );
-    final breathingStreak = StreakCalculator.computeStreak(
-      _allEvents.where((e) => e.type == 'Breathing').toList(),
-    );
-    final habitStreak = StreakCalculator.computeStreak(
-      _allEvents.where((e) => e.type == 'Habit').toList(),
-    );
+    return StreamBuilder<GamificationStats>(
+      stream: GamificationService().getStatsStream(),
+      builder: (context, snapshot) {
+        final stats = snapshot.data ?? const GamificationStats();
 
-    return GridView.count(
-      crossAxisCount: 2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 2.2,
-      children: [
-        _StreakCard('Journal', journalStreak, Icons.menu_book, _kDotJournal),
-        _StreakCard('ERP Timer', erpStreak, Icons.timer, _kDotErp),
-        _StreakCard('Breathing', breathingStreak, Icons.air, _kDotBreathing),
-        _StreakCard(
-          'Habits Free',
-          habitStreak,
-          Icons.calendar_today,
-          _kDotHabit,
-        ),
-      ],
+        return GridView.count(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 2.2,
+          children: [
+            _StreakCard(
+              'Journal',
+              stats.journalStreak,
+              Icons.menu_book,
+              _kDotJournal,
+            ),
+            _StreakCard('ERP Timer', stats.erpStreak, Icons.timer, _kDotErp),
+            _StreakCard(
+              'Breathing',
+              stats.breathingStreak,
+              Icons.air,
+              _kDotBreathing,
+            ),
+            _StreakCard(
+              'Habits Free',
+              stats.habitStreak,
+              Icons.calendar_today,
+              _kDotHabit,
+            ),
+          ],
+        );
+      },
     );
   }
 

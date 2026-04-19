@@ -79,7 +79,7 @@ export const aggregateAnoChatReactions = functions.firestore
     });
   });
 
-// ── 3. Gamification System (XP & Streaks) ─────────────────────────────────
+// ── 3. Gamification System (XP & Streaks) & Timeline Generation ───────────
 
 const BASE_XP = {
   JOURNAL: 10,
@@ -88,15 +88,34 @@ const BASE_XP = {
   HABIT: 5,
 };
 
-async function awardGamificationXP(uid: string, baseXP: number) {
+async function logTimelineEvent(uid: string, eventId: string, timestamp: Date, type: string, title: string, detail: string) {
+  const ref = db.collection('users').doc(uid).collection('timeline_events').doc(eventId);
+  await ref.set({
+    date: admin.firestore.Timestamp.fromDate(timestamp),
+    type,
+    title,
+    detail,
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+}
+
+async function awardGamificationXP(uid: string, baseXP: number, moduleType: 'journal' | 'erp' | 'breathing' | 'habit') {
   const statsRef = db.collection('users').doc(uid).collection('user_stats').doc('gamification');
 
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(statsRef);
     let currentXP = 0;
+    
+    // Global
     let currentStreak = 0;
     let highestStreak = 0;
     let lastActivityDate = '';
+    
+    // Module level
+    let moduleStreaks: Record<string, number> = {
+      journal: 0, erp: 0, breathing: 0, habit: 0
+    };
+    let moduleLastActivityDates: Record<string, string> = {};
 
     if (snap.exists) {
       const data = snap.data();
@@ -105,22 +124,23 @@ async function awardGamificationXP(uid: string, baseXP: number) {
         currentStreak = data.currentStreak || 0;
         highestStreak = data.highestStreak || 0;
         lastActivityDate = data.lastActivityDate || '';
+        moduleStreaks = data.moduleStreaks || moduleStreaks;
+        moduleLastActivityDates = data.moduleLastActivityDates || moduleLastActivityDates;
       }
     }
 
     const todayDate = new Date();
     const todayStr = todayDate.toISOString().split('T')[0];
 
+    // -- Update Global Streak --
     if (lastActivityDate) {
       const todayZero = new Date(`${todayStr}T00:00:00Z`);
       const lastZero = new Date(`${lastActivityDate}T00:00:00Z`);
       const diffDays = Math.round((todayZero.getTime() - lastZero.getTime()) / 86400000);
 
       if (diffDays === 1) {
-        // Continuous daily streak
         currentStreak += 1;
       } else if (diffDays > 1) {
-        // Streak broken
         currentStreak = 1;
       } else if (diffDays === 0 && currentStreak === 0) {
          currentStreak = 1;
@@ -133,7 +153,30 @@ async function awardGamificationXP(uid: string, baseXP: number) {
       highestStreak = currentStreak;
     }
 
-    // Apply multiplier/bonus for having a streak
+    // -- Update Module Specific Streak --
+    let modStreak = moduleStreaks[moduleType] || 0;
+    const modLastDate = moduleLastActivityDates[moduleType] || '';
+    
+    if (modLastDate) {
+      const todayZero = new Date(`${todayStr}T00:00:00Z`);
+      const lastZero = new Date(`${modLastDate}T00:00:00Z`);
+      const diffDays = Math.round((todayZero.getTime() - lastZero.getTime()) / 86400000);
+
+      if (diffDays === 1) {
+        modStreak += 1;
+      } else if (diffDays > 1) {
+        modStreak = 1;
+      } else if (diffDays === 0 && modStreak === 0) {
+        modStreak = 1;
+      }
+    } else {
+      modStreak = 1;
+    }
+
+    moduleStreaks[moduleType] = modStreak;
+    moduleLastActivityDates[moduleType] = todayStr;
+
+    // -- Update XP --
     const streakBonus = currentStreak >= 2 ? currentStreak * 2 : 0;
     currentXP += (baseXP + streakBonus);
 
@@ -142,6 +185,8 @@ async function awardGamificationXP(uid: string, baseXP: number) {
       currentStreak,
       highestStreak,
       lastActivityDate: todayStr,
+      moduleStreaks,
+      moduleLastActivityDates,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
   });
@@ -151,7 +196,23 @@ async function awardGamificationXP(uid: string, baseXP: number) {
 export const onJournalCreated = functions.firestore
   .document('users/{uid}/cbt_journal/{entryId}')
   .onCreate(async (snap, context) => {
-    return awardGamificationXP(context.params.uid, BASE_XP.JOURNAL);
+    const data = snap.data();
+    if (!data) return null;
+    
+    const preAnx = data.preAnxietyLevel ?? '?';
+    const postAnx = data.postAnxietyLevel ?? '?';
+    const ts = data.createdAt ? data.createdAt.toDate() : new Date();
+
+    await logTimelineEvent(
+      context.params.uid, 
+      context.params.entryId, 
+      ts, 
+      'Journal', 
+      `Journal Entry #${data.journalNumber ?? '?'}`,
+      `Pre-anxiety: ${preAnx}/10 | Post-anxiety: ${postAnx}/10`
+    );
+
+    return awardGamificationXP(context.params.uid, BASE_XP.JOURNAL, 'journal');
   });
 
 // 3b. ERP Session XP
@@ -159,10 +220,18 @@ export const onErpSessionCreated = functions.firestore
   .document('users/{uid}/erp_sessions/{sessionId}')
   .onCreate(async (snap, context) => {
     const data = snap.data();
-    // Only award XP if complete? The prompt says 'every completed erp session should increase xp'
-    // The dart file uses 'session_complete' (int: 1 for complete)
     if (data && (data.session_complete === 1 || data.session_complete === true)) {
-      return awardGamificationXP(context.params.uid, BASE_XP.ERP);
+      const ts = data.timestamp ? data.timestamp.toDate() : new Date();
+      await logTimelineEvent(
+        context.params.uid,
+        context.params.sessionId,
+        ts,
+        'ERP',
+        'ERP Session',
+        `${data.duration_mins ?? 0} mins (Complete)`
+      );
+      
+      return awardGamificationXP(context.params.uid, BASE_XP.ERP, 'erp');
     }
     return null;
   });
@@ -172,74 +241,80 @@ export const onBreathingSessionCreated = functions.firestore
   .document('users/{uid}/breathing_sessions/{sessionId}')
   .onCreate(async (snap, context) => {
     const data = snap.data();
-    // The prompt says 'every complete breathing exercise session'
     if (data && data.completed === true) {
-      return awardGamificationXP(context.params.uid, BASE_XP.BREATHING);
+      const ts = data.timestamp ? data.timestamp.toDate() : new Date();
+      await logTimelineEvent(
+        context.params.uid,
+        context.params.sessionId,
+        ts,
+        'Breathing',
+        `Breathing: ${data.exerciseType ?? 'Exercise'}`,
+        `${data.durationSeconds ?? 0} secs`
+      );
+
+      return awardGamificationXP(context.params.uid, BASE_XP.BREATHING, 'breathing');
     }
     return null;
   });
 
-// 3d. Habit Freedom XP & Streak Calculation (App transferred to Cloud)
+// 3d. Habit Freedom XP, Timeline Generation & Legacy Streak Calculation
 export const onHabitMarkedDay = functions.firestore
   .document('users/{uid}/habit_trackers/{habitId}')
   .onUpdate(async (change, context) => {
     const beforeDays = change.before.data()?.markedDates || [];
     const afterDays = change.after.data()?.markedDates || [];
 
-    // Did the user mark a new day?
     if (afterDays.length > beforeDays.length) {
-      // Award Gamification XP for marking a new habit
-      await awardGamificationXP(context.params.uid, BASE_XP.HABIT);
+       // We marked a new day! 
+       const newlyMarkedDayStr = afterDays[afterDays.length - 1]; // "2026-04-19"
+       const habitName = change.after.data()?.name || 'Habit';
+       
+       // Use noon for the timeline timestamp to stay consistent with past Logic
+       const dateObj = new Date(`${newlyMarkedDayStr}T12:00:00.000Z`);
+
+       await logTimelineEvent(
+         context.params.uid,
+         `${context.params.habitId}_${newlyMarkedDayStr}`, // unique ID per day marked
+         dateObj,
+         'Habit',
+         'Habit Kept Free',
+         habitName
+       );
+
+      await awardGamificationXP(context.params.uid, BASE_XP.HABIT, 'habit');
 
       // We ALSO calculate the inner habit streak directly here.
       // After array is already updated in Firestore.
       if (afterDays.length > 0) {
-        // Sort dates to compute streak properly
         const sortedDates = [...afterDays].sort();
-        
         let currentStreak = 1;
         let longestStreak = 1;
         
-        // Compute longest
         let run = 1;
         for (let i = 1; i < sortedDates.length; i++) {
           const d1 = new Date(`${sortedDates[i-1]}T00:00:00Z`);
           const d2 = new Date(`${sortedDates[i]}T00:00:00Z`);
           const diff = Math.round((d2.getTime() - d1.getTime()) / 86400000);
           
-          if (diff === 1) {
-            run += 1;
-          } else if (diff > 1) {
-            run = 1;
-          }
+          if (diff === 1) { run += 1; } 
+          else if (diff > 1) { run = 1; }
           if (run > longestStreak) { longestStreak = run; }
         }
         
-        // Compute current
         for (let i = sortedDates.length - 1; i > 0; i--) {
           const d1 = new Date(`${sortedDates[i-1]}T00:00:00Z`);
           const d2 = new Date(`${sortedDates[i]}T00:00:00Z`);
           const diff = Math.round((d2.getTime() - d1.getTime()) / 86400000);
-          if (diff === 1) {
-            currentStreak += 1;
-          } else {
-            break;
-          }
+          if (diff === 1) { currentStreak += 1; } 
+          else { break; }
         }
         
-        // Determine if current streak is broken (based on UTC relative to today, or just relative to local 'dateKey')
         const latestMarkedStr = sortedDates[sortedDates.length - 1];
         const latestMarked = new Date(`${latestMarkedStr}T00:00:00Z`);
-        const today = new Date();
-        const todayZero = new Date(`${today.toISOString().split('T')[0]}T00:00:00Z`);
+        const todayZero = new Date(`${new Date().toISOString().split('T')[0]}T00:00:00Z`);
         const diffFromToday = Math.round((todayZero.getTime() - latestMarked.getTime()) / 86400000);
-        
-        if (diffFromToday > 1) {
-           currentStreak = 0;
-        }
+        if (diffFromToday > 1) { currentStreak = 0; }
 
-        // Avoid infinite loops in onUpdate:
-        // Only write back to document if the stats actually changed.
         const prevCurrent = change.after.data()?.currentStreak || 0;
         const prevLongest = change.after.data()?.longestStreak || 0;
         const prevTotal = change.after.data()?.totalMarkedDays || 0;
@@ -256,7 +331,6 @@ export const onHabitMarkedDay = functions.firestore
     return null;
   });
 
-
 // ── 4. Data Aggregation for Analytics (Optimized Dashboard) ───────────────
 
 /**
@@ -267,14 +341,12 @@ export const onHabitMarkedDay = functions.firestore
 async function updateDailyAnxietyAggregate(uid: string, dateObj: Date) {
   const dateStr = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
   
-  // Set boundaries for the specific day to query
   const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
   const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
 
   let totalPercentage = 0;
   let count = 0;
 
-  // 1. Get Journal entries for that day
   const journalsSnap = await db.collection(`users/${uid}/cbt_journal`)
     .where('createdAt', '>=', startOfDay)
     .where('createdAt', '<=', endOfDay)
@@ -291,7 +363,6 @@ async function updateDailyAnxietyAggregate(uid: string, dateObj: Date) {
     }
   });
 
-  // 2. Get ERP sessions for that day
   const erpsSnap = await db.collection(`users/${uid}/erp_sessions`)
     .where('timestamp', '>=', startOfDay)
     .where('timestamp', '<=', endOfDay)
@@ -310,7 +381,6 @@ async function updateDailyAnxietyAggregate(uid: string, dateObj: Date) {
     }
   });
 
-  // 3. Save aggregated result to 'daily_analytics' collection
   const analyticsRef = db.collection(`users/${uid}/daily_analytics`).doc(dateStr);
   
   if (count > 0) {
@@ -323,7 +393,6 @@ async function updateDailyAnxietyAggregate(uid: string, dateObj: Date) {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
   } else {
-    // If user deleted their only session that day, remove the aggregate
     await analyticsRef.delete().catch(() => {}); 
   }
 }
@@ -331,11 +400,9 @@ async function updateDailyAnxietyAggregate(uid: string, dateObj: Date) {
 export const aggregateJournalAnxiety = functions.firestore
   .document('users/{uid}/cbt_journal/{entryId}')
   .onWrite(async (change, context) => {
-    // Determine the date to aggregate. Use updated document, fallback to deleted document.
     const data = change.after.exists ? change.after.data() : change.before.data();
     if (!data || !data.createdAt) return null;
     
-    // Convert Firestore Timestamp to JS Date
     const dateObj = data.createdAt.toDate();
     await updateDailyAnxietyAggregate(context.params.uid, dateObj);
     return null;

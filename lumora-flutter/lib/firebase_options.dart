@@ -63,7 +63,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '567558823095',
     projectId: 'lumora-3b4ec',
     storageBucket: 'lumora-3b4ec.firebasestorage.app',
-    iosClientId: '567558823095-9obo89u1744uhlo14lec9foivoi8bu3b.apps.googleusercontent.com',
+    iosClientId:
+        '567558823095-9obo89u1744uhlo14lec9foivoi8bu3b.apps.googleusercontent.com',
     iosBundleId: 'com.example.lumoraFlutter',
   );
 }
