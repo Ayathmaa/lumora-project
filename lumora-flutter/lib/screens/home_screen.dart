@@ -688,84 +688,75 @@ class _Feature {
 // ════════════════════════════════════════════════════════════════════════════
 //  Insights Card
 // ════════════════════════════════════════════════════════════════════════════
-class _InsightsCard extends StatefulWidget {
+class _InsightsCard extends StatelessWidget {
   const _InsightsCard();
 
   @override
-  State<_InsightsCard> createState() => _InsightsCardState();
-}
-
-class _InsightsCardState extends State<_InsightsCard> {
-  final _service = InsightsService();
-  List<Insight>? _insights;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchInsights();
-  }
-
-  Future<void> _fetchInsights() async {
-    final insights = await _service.getInsights();
-    if (mounted) {
-      setState(() => _insights = insights);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (_insights == null) {
-      return const SizedBox(
-        height: 60,
-        child: Center(
-          child: CircularProgressIndicator(color: _kBlue, strokeWidth: 2),
-        ),
-      );
-    }
+    final service = InsightsService();
 
-    if (_insights!.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            'Your Insights',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: _kNavy,
-            ),
-          ),
-        ),
-        ..._insights!.map((insight) {
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: insight.bgColor,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                Icon(insight.icon, color: insight.color, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    insight.text,
-                    style: TextStyle(
-                      color: insight.color,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ],
+    return StreamBuilder<List<Insight>>(
+      stream: service.getInsightsStream(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(
+            height: 60,
+            child: Center(
+              child: CircularProgressIndicator(color: _kBlue, strokeWidth: 2),
             ),
           );
-        }),
-      ],
+        }
+
+        final insightsList = snapshot.data;
+        if (insightsList == null || insightsList.isEmpty)
+          return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(left: 4, bottom: 8),
+              child: Text(
+                'Your Insights',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: _kNavy,
+                ),
+              ),
+            ),
+            ...insightsList.map((insight) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: insight.bgColor,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Icon(insight.icon, color: insight.color, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        insight.text,
+                        style: TextStyle(
+                          color: insight.color,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        );
+      },
     );
   }
 }

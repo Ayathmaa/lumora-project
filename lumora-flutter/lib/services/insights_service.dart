@@ -49,139 +49,138 @@ class InsightsService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  Future<List<Insight>> getInsights() async {
+  Stream<List<Insight>> getInsightsStream() {
     final uid = _auth.currentUser?.uid;
-    if (uid == null) return [];
+    if (uid == null) return Stream.value([]);
 
-    final insights = <Insight>[];
+    // We can listen to daily_analytics for changes to update anxiety/mood insights reactively
+    return _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('daily_analytics')
+        .orderBy('timestamp', descending: true)
+        .limit(2)
+        .snapshots()
+        .asyncMap((analyticsSnapshot) async {
+          final insights = <Insight>[];
 
-    // Fetch the two most recent daily analytics
-    final analyticsDocs =
-        await _firestore
-            .collection('users')
-            .doc(uid)
-            .collection('daily_analytics')
-            .orderBy('timestamp', descending: true)
-            .limit(2)
-            .get();
+          if (analyticsSnapshot.docs.length >= 2) {
+            final todayData = analyticsSnapshot.docs[0].data();
+            final yesterdayData = analyticsSnapshot.docs[1].data();
 
-    if (analyticsDocs.docs.length >= 2) {
-      final todayData = analyticsDocs.docs[0].data();
-      final yesterdayData = analyticsDocs.docs[1].data();
+            // Evaluate Anxiety Trends
+            final num? todayAnxiety =
+                todayData['anxietyRemainingPercent'] as num?;
+            final num? yesterdayAnxiety =
+                yesterdayData['anxietyRemainingPercent'] as num?;
 
-      // Evaluate Anxiety Trends
-      final num? todayAnxiety = todayData['anxietyRemainingPercent'] as num?;
-      final num? yesterdayAnxiety =
-          yesterdayData['anxietyRemainingPercent'] as num?;
+            if (todayAnxiety != null &&
+                yesterdayAnxiety != null &&
+                yesterdayAnxiety > 0) {
+              if (todayAnxiety < yesterdayAnxiety) {
+                final double diff =
+                    yesterdayAnxiety.toDouble() - todayAnxiety.toDouble();
+                final double percentChange = (diff / yesterdayAnxiety) * 100;
+                if (percentChange >= 1.0) {
+                  insights.add(
+                    Insight(
+                      text:
+                          'Your anxiety decreased by ${percentChange.round()}% today',
+                      type: InsightType.improvement,
+                    ),
+                  );
+                }
+              } else if (todayAnxiety > yesterdayAnxiety) {
+                final double diff =
+                    todayAnxiety.toDouble() - yesterdayAnxiety.toDouble();
+                final double percentChange = (diff / yesterdayAnxiety) * 100;
+                if (percentChange >= 5.0) {
+                  insights.add(
+                    Insight(
+                      text:
+                          'Your anxiety increased by ${percentChange.round()}% today',
+                      type: InsightType.warning,
+                    ),
+                  );
+                }
+              }
+            }
 
-      if (todayAnxiety != null &&
-          yesterdayAnxiety != null &&
-          yesterdayAnxiety > 0) {
-        if (todayAnxiety < yesterdayAnxiety) {
-          final double diff =
-              yesterdayAnxiety.toDouble() - todayAnxiety.toDouble();
-          final double percentChange = (diff / yesterdayAnxiety) * 100;
-          if (percentChange >= 1.0) {
-            insights.add(
-              Insight(
-                text:
-                    'Your anxiety decreased by ${percentChange.round()}% today',
-                type: InsightType.improvement,
-              ),
-            );
+            // Evaluate Mood Trends
+            final num? todayMood = todayData['moodScore'] as num?;
+            final num? yesterdayMood = yesterdayData['moodScore'] as num?;
+
+            if (todayMood != null && yesterdayMood != null) {
+              if (todayMood > yesterdayMood) {
+                insights.add(
+                  const Insight(
+                    text: 'Your mood is improving today',
+                    type: InsightType.improvement,
+                  ),
+                );
+              } else if (todayMood < yesterdayMood) {
+                insights.add(
+                  const Insight(
+                    text: 'Your mood is lower today',
+                    type: InsightType.warning,
+                  ),
+                );
+              }
+            }
           }
-        } else if (todayAnxiety > yesterdayAnxiety) {
-          final double diff =
-              todayAnxiety.toDouble() - yesterdayAnxiety.toDouble();
-          final double percentChange = (diff / yesterdayAnxiety) * 100;
-          if (percentChange >= 5.0) {
+
+          // Evaluate "High stress detected on evenings" via recent cbt_journal
+          final journalDocs =
+              await _firestore
+                  .collection('users')
+                  .doc(uid)
+                  .collection('cbt_journal')
+                  .orderBy('createdAt', descending: true)
+                  .limit(20)
+                  .get();
+
+          int eveningJournals = 0;
+          int eveningHighStress = 0;
+
+          for (var doc in journalDocs.docs) {
+            final data = doc.data();
+            final ts = data['createdAt'] as Timestamp?;
+            if (ts == null) continue;
+
+            final date = ts.toDate();
+            final hour = date.hour;
+
+            // Evening considered 17:00 to 23:59
+            if (hour >= 17 || hour <= 3) {
+              eveningJournals++;
+              final preAnxiety = data['preAnxietyLevel'] as int? ?? 0;
+              final postAnxiety = data['postAnxietyLevel'] as int? ?? 0;
+              if (preAnxiety >= 7 || postAnxiety >= 6) {
+                eveningHighStress++;
+              }
+            }
+          }
+
+          if (eveningJournals >= 3 &&
+              (eveningHighStress / eveningJournals) >= 0.5) {
             insights.add(
-              Insight(
-                text:
-                    'Your anxiety increased by ${percentChange.round()}% today',
+              const Insight(
+                text: 'High stress detected on evenings',
                 type: InsightType.warning,
               ),
             );
           }
-        }
-      }
 
-      // Evaluate Mood Trends
-      final num? todayMood = todayData['moodScore'] as num?;
-      final num? yesterdayMood = yesterdayData['moodScore'] as num?;
+          if (insights.isEmpty) {
+            insights.add(
+              const Insight(
+                text: 'Keep logging journals to see your insights',
+                type: InsightType.info,
+              ),
+            );
+          }
 
-      if (todayMood != null && yesterdayMood != null) {
-        if (todayMood > yesterdayMood) {
-          insights.add(
-            const Insight(
-              text: 'Your mood is improving today',
-              type: InsightType.improvement,
-            ),
-          );
-        } else if (todayMood < yesterdayMood) {
-          insights.add(
-            const Insight(
-              text: 'Your mood is lower today',
-              type: InsightType.warning,
-            ),
-          );
-        }
-      }
-    }
-
-    // Evaluate "High stress detected on evenings" via recent cbt_journal
-    // To do this sustainably, we just fetch a small number of recent journals.
-    final journalDocs =
-        await _firestore
-            .collection('users')
-            .doc(uid)
-            .collection('cbt_journal')
-            .orderBy('createdAt', descending: true)
-            .limit(20)
-            .get();
-
-    int eveningJournals = 0;
-    int eveningHighStress = 0;
-
-    for (var doc in journalDocs.docs) {
-      final data = doc.data();
-      final ts = data['createdAt'] as Timestamp?;
-      if (ts == null) continue;
-
-      final date = ts.toDate();
-      final hour = date.hour;
-
-      // Evening considered 17:00 to 23:59
-      if (hour >= 17 || hour <= 3) {
-        eveningJournals++;
-        final preAnxiety = data['preAnxietyLevel'] as int? ?? 0;
-        final postAnxiety = data['postAnxietyLevel'] as int? ?? 0;
-        // Using average of pre and post to define high stress
-        if (preAnxiety >= 7 || postAnxiety >= 6) {
-          eveningHighStress++;
-        }
-      }
-    }
-
-    if (eveningJournals >= 3 && (eveningHighStress / eveningJournals) >= 0.5) {
-      insights.add(
-        const Insight(
-          text: 'High stress detected on evenings',
-          type: InsightType.warning,
-        ),
-      );
-    }
-
-    // If no insights at all (e.g. brand new user), we can return an info or return empty
-    if (insights.isEmpty) {
-      insights.add(
-        const Insight(
-          text: 'Keep logging journals to see your insights',
-          type: InsightType.info,
-        ),
-      );
-    }
-
-    return insights;
+          return insights;
+        });
   }
 }
