@@ -4,6 +4,8 @@ import 'package:lumora_flutter/services/gamification_service.dart';
 import 'package:lumora_flutter/services/gamification_utils.dart';
 import 'package:lumora_flutter/screens/login_screen.dart';
 import 'package:lumora_flutter/screens/upgrade_account_screen.dart';
+import 'package:lumora_flutter/screens/edit_profile_screen.dart';
+import 'package:lumora_flutter/screens/change_password_screen.dart';
 
 const _kBg = Color(0xFFC8DCF0);
 const _kNavy = Color(0xFF1A3A5C);
@@ -167,25 +169,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Container(
                       width: 88,
                       height: 88,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF6BAED4), Color(0xFF1A3A5C)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        gradient:
+                            user?.photoURL == null
+                                ? const LinearGradient(
+                                  colors: [
+                                    Color(0xFF6BAED4),
+                                    Color(0xFF1A3A5C),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                )
+                                : null,
+                        image:
+                            user?.photoURL != null
+                                ? DecorationImage(
+                                  image: NetworkImage(user!.photoURL!),
+                                  fit: BoxFit.cover,
+                                )
+                                : null,
                       ),
-                      child: Center(
-                        child: Text(
-                          initials,
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ),
+                      child:
+                          user?.photoURL == null
+                              ? Center(
+                                child: Text(
+                                  initials,
+                                  style: const TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                              )
+                              : null,
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -383,12 +401,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _SettingRow(
                     icon: Icons.person_outline_rounded,
                     label: 'Edit Profile',
-                    onTap: () {},
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (_) => EditProfileScreen(
+                                currentUsername: _username ?? 'Aurora',
+                              ),
+                        ),
+                      );
+                      setState(() {}); // Refresh avatar/ui
+                      _loadUsername(); // Refresh username
+                    },
                   ),
                   _SettingRow(
                     icon: Icons.lock_outline_rounded,
                     label: 'Change Password',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ChangePasswordScreen(),
+                        ),
+                      );
+                    },
                   ),
                   _SettingRow(
                     icon: Icons.notifications_outlined,

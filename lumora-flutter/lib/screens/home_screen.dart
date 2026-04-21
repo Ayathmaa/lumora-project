@@ -166,6 +166,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               // ── greeting card ─────────────────────────────────────────────
               _GreetingCard(
                 name: displayName,
+                photoUrl: user?.photoURL,
                 onProfileTap: widget.onProfileTap,
               ),
               const SizedBox(height: 14),
@@ -205,9 +206,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 // ════════════════════════════════════════════════════════════════════════════
 class _GreetingCard extends StatelessWidget {
   final String name;
+  final String? photoUrl;
   final VoidCallback? onProfileTap;
 
-  const _GreetingCard({required this.name, required this.onProfileTap});
+  const _GreetingCard({
+    required this.name,
+    this.photoUrl,
+    required this.onProfileTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -260,15 +266,25 @@ class _GreetingCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: _kCardBg,
                     shape: BoxShape.circle,
+                    image:
+                        photoUrl != null
+                            ? DecorationImage(
+                              image: NetworkImage(photoUrl!),
+                              fit: BoxFit.cover,
+                            )
+                            : null,
                     boxShadow: const [
                       BoxShadow(color: Color(0x14000000), blurRadius: 6),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.person_rounded,
-                    color: _kBlue,
-                    size: 20,
-                  ),
+                  child:
+                      photoUrl == null
+                          ? const Icon(
+                            Icons.person_rounded,
+                            color: _kBlue,
+                            size: 20,
+                          )
+                          : null,
                 ),
               ),
             ],

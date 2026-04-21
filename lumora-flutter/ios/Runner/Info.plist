@@ -49,5 +49,9 @@
 		<false/>
 		<key>NSUserNotificationUsageDescription</key>
 		<string>Lumora reminds you to log your daily mood each evening.</string>
-	</dict>
-</plist>
+                <key>NSPhotoLibraryUsageDescription</key>
+                <string>Lumora needs access to your photo library so you can choose a profile picture.</string>
+                <key>NSCameraUsageDescription</key>
+                <string>Lumora needs access to your camera so you can take a profile picture.</string>
+                <key>NSMicrophoneUsageDescription</key>
+                <string>Lumora needs access to your microphone for video uploads.</string>

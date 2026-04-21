@@ -210,4 +210,68 @@ class AuthService {
         return 'Authentication failed. Please try again.';
     }
   }
+
+  // Update profile details
+  Future<void> updateUserProfile({
+    required String name,
+    required String username,
+    String? photoURL,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception("No user signed in");
+
+    final lowerUsername = username.toLowerCase();
+    final batch = _firestore.batch();
+
+    // Check if username changed and is available
+    final currentUsername = await getUsername(user.uid);
+    if (currentUsername != lowerUsername) {
+      final isTaken = await isUsernameTaken(lowerUsername);
+      if (isTaken) throw Exception("Username is already taken.");
+
+      // Delete old username mapping
+      if (currentUsername != null) {
+        batch.delete(_firestore.collection('usernames').doc(currentUsername));
+      }
+
+      // Add new username mapping
+      batch.set(_firestore.collection('usernames').doc(lowerUsername), {
+        'uid': user.uid,
+      });
+    }
+
+    // Update user document
+    batch.update(_firestore.collection('users').doc(user.uid), {
+      'name': name,
+      'username': lowerUsername,
+    });
+
+    await batch.commit();
+
+    // Update Firebase Auth profile
+    await user.updateDisplayName(name);
+    if (photoURL != null) {
+      await user.updatePhotoURL(photoURL);
+    }
+  }
+
+  // Change password
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception("No user signed in");
+    if (user.email == null) throw Exception("User has no email");
+
+    // Re-authenticate
+    final cred = EmailAuthProvider.credential(
+      email: user.email!,
+      password: currentPassword,
+    );
+    await user.reauthenticateWithCredential(cred);
+
+    // Update password
+    await user.updatePassword(newPassword);
+  }
 }

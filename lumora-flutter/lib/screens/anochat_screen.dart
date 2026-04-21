@@ -70,8 +70,6 @@ class _AnoChatScreenState extends State<AnoChatScreen> {
       if (mounted) {
         setState(() {
           _myReactions = map;
-          // Firestore confirmed — clear pending deltas
-          _countDeltas.clear();
         });
       }
     });
@@ -141,6 +139,13 @@ class _AnoChatScreenState extends State<AnoChatScreen> {
       final existing = Map<String, int>.from(_countDeltas[postId] ?? {});
       delta.forEach((k, v) => existing[k] = (existing[k] ?? 0) + v);
       _countDeltas[postId] = existing;
+    });
+
+    // Clear the optimistic delta after a few seconds to let the Cloud Function update the aggregate
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted && _countDeltas.containsKey(postId)) {
+        setState(() => _countDeltas.remove(postId));
+      }
     });
 
     try {
