@@ -49,10 +49,6 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
   String? _selectedDifficulty;
   final Set<String> _selectedTriggers = {};
 
-  // Streak
-  static const _streak = 7;
-  static const _streakGoal = 30;
-
   final _erpService = ErpTimerService();
 
   static const _exercises = [
@@ -369,44 +365,6 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
           const Text(
             'Stay with the feeling. Let it pass naturally.',
             style: TextStyle(color: Colors.white70, fontSize: 11.5),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.local_fire_department_rounded,
-                    color: Colors.white,
-                    size: 15,
-                  ),
-                  const SizedBox(width: 4),
-                  const Text(
-                    'Day $_streak Streak',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              const Text(
-                '$_streakGoal day goal',
-                style: TextStyle(color: Colors.white70, fontSize: 11.5),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: _streak / _streakGoal,
-              backgroundColor: Colors.white30,
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-              minHeight: 6,
-            ),
           ),
         ],
       ),

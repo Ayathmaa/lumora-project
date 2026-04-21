@@ -1,50 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:lumora_flutter/screens/anochat_screen.dart';
 import 'package:lumora_flutter/screens/home_screen.dart';
+import 'package:lumora_flutter/screens/partner_screen.dart';
 
 import 'package:lumora_flutter/screens/readmore_screen.dart';
 import 'package:lumora_flutter/screens/profile_screen.dart';
 import 'package:lumora_flutter/widgets/lumora_nav_bar.dart';
-
-// ── Placeholder screens for tabs not yet built ───────────────────────────
-class _ComingSoonScreen extends StatelessWidget {
-  final String title;
-  const _ComingSoonScreen({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFC8DCF0),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.construction_rounded,
-              size: 64,
-              color: Color(0xFF6BAED4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF1A3A5C),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Coming soon…',
-              style: TextStyle(fontSize: 14, color: Color(0xFF4A6FA5)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-// ─────────────────────────────────────────────────────────────────────────
 
 /// The top-level shell that owns the nav bar and switches between tabs.
 /// ALL screens inside this shell share a single [LumoraNavBar] instance.
@@ -74,7 +35,7 @@ class _MainShellState extends State<MainShell> {
           // 2 – AnonChat
           const AnoChatScreen(),
           // 3 – Partner
-          const _ComingSoonScreen(title: 'Partner'),
+          const PartnerScreen(),
           // 4 – Profile
           const ProfileScreen(),
         ],
