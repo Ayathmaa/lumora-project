@@ -748,8 +748,9 @@ class _JournalHistoryScreenState extends State<_JournalHistoryScreen> {
   }
 
   Future<void> _loadMore() async {
-    if (_paginator == null || !_paginator!.hasMore || _paginator!.isFetching)
+    if (_paginator == null || !_paginator!.hasMore || _paginator!.isFetching) {
       return;
+    }
 
     try {
       final newEntries = await _paginator!.fetchNext();

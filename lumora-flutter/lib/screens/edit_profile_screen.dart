@@ -217,8 +217,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     validator: (v) {
                       if (v!.isEmpty) return 'Required';
                       if (v.length < 3) return 'Too short';
-                      if (RegExp(r'[^a-zA-Z0-9_]').hasMatch(v))
+                      if (RegExp(r'[^a-zA-Z0-9_]').hasMatch(v)) {
                         return 'No special characters';
+                      }
                       return null;
                     },
                   ),

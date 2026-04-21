@@ -724,8 +724,9 @@ class _InsightsCard extends StatelessWidget {
         }
 
         final insightsList = snapshot.data;
-        if (insightsList == null || insightsList.isEmpty)
+        if (insightsList == null || insightsList.isEmpty) {
           return const SizedBox.shrink();
+        }
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

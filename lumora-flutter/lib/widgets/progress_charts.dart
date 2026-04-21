@@ -156,11 +156,13 @@ class ProgressChartsWidget extends StatelessWidget {
                               reservedSize: 32,
                               getTitlesWidget: (value, meta) {
                                 // Force integer steps for non-dates
-                                if (!isDays && value != value.toInt())
+                                if (!isDays && value != value.toInt()) {
                                   return const SizedBox.shrink();
+                                }
                                 // Avoid edge duplication slightly out of bounds
-                                if (value < minX || value > maxX)
+                                if (value < minX || value > maxX) {
                                   return const SizedBox.shrink();
+                                }
 
                                 String text = '';
                                 if (isDays) {
@@ -194,8 +196,9 @@ class ProgressChartsWidget extends StatelessWidget {
                               reservedSize: 30,
                               getTitlesWidget: (value, meta) {
                                 // integer check just in case
-                                if (value != value.toInt())
+                                if (value != value.toInt()) {
                                   return const SizedBox.shrink();
+                                }
                                 return SideTitleWidget(
                                   axisSide: meta.axisSide,
                                   space: 6,
