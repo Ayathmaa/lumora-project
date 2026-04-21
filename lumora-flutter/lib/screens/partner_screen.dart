@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 
-const _kBg = Color(0xFFDCEBF7);
+const _kBg = Color(0xFFC8DCF0);
 const _kNavy = Color(0xFF1A3A5C);
-const _kSubtitle = Color(0xFF6B8BA6);
+const _kSubtitle = Color(0xFF4A6FA5);
 const _kCardBg = Colors.white;
 const _kBlue = Color(0xFF6BAED4);
-const _kBlueDark = Color(0xFF1E9FE8);
-const _kBlueSoft = Color(0xFFE8F4FC);
-const _kBorder = Color(0xFFE4F0F8);
-const _kShadow = Color(0x1A6BAED4);
+const _kBlueDark = Color(0xFF2B99D1);
+const _kBlueSoft = Color(0xFFD6ECFA);
+const _kIconBg = Color(0xFFD6ECFA);
+const _kBorder = Color(0xFFE0EAF4);
+const _kShadow = Color(0x10000000);
 const _kMuted = Color(0xFFC8CED8);
 
 class PartnerScreen extends StatefulWidget {
@@ -59,13 +60,12 @@ class _PartnerScreenState extends State<PartnerScreen> {
       backgroundColor: _kBg,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(18, 24, 18, 28),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 10),
               const _PartnerHeader(),
-              const SizedBox(height: 26),
+              const SizedBox(height: 28),
               _SectionCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,7 +77,7 @@ class _PartnerScreenState extends State<PartnerScreen> {
                           child: Text(
                             'Overall Mood\nTrend',
                             style: TextStyle(
-                              color: Color(0xFF2B3047),
+                              color: _kNavy,
                               fontSize: 16,
                               height: 1.55,
                               fontWeight: FontWeight.w800,
@@ -101,7 +101,7 @@ class _PartnerScreenState extends State<PartnerScreen> {
                           child: _MiniStatCard(
                             icon: Icons.local_fire_department_rounded,
                             iconColor: Color(0xFFFFA449),
-                            title: 'Current\nStreak',
+                            title: 'Current Streak',
                             value: '14 Days',
                           ),
                         ),
@@ -127,7 +127,7 @@ class _PartnerScreenState extends State<PartnerScreen> {
                     Text(
                       'Activity Summary',
                       style: TextStyle(
-                        color: Color(0xFF2B3047),
+                        color: _kNavy,
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                       ),
@@ -183,7 +183,7 @@ class _PartnerScreenState extends State<PartnerScreen> {
                     const Text(
                       'Sharing Preferences',
                       style: TextStyle(
-                        color: Color(0xFF2B3047),
+                        color: _kNavy,
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                       ),
@@ -210,7 +210,7 @@ class _PartnerScreenState extends State<PartnerScreen> {
                     const Text(
                       'Progress Report',
                       style: TextStyle(
-                        color: Color(0xFF2B3047),
+                        color: _kNavy,
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                       ),
@@ -239,7 +239,7 @@ class _PartnerScreenState extends State<PartnerScreen> {
                           ),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(14),
                           ),
                         ),
                         icon: const Icon(Icons.download_rounded, size: 22),
@@ -276,7 +276,7 @@ class _PartnerScreenState extends State<PartnerScreen> {
                     const Text(
                       'Emergency Contacts',
                       style: TextStyle(
-                        color: Color(0xFF2B3047),
+                        color: _kNavy,
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                       ),
@@ -296,14 +296,11 @@ class _PartnerScreenState extends State<PartnerScreen> {
                     Center(
                       child: TextButton.icon(
                         onPressed: _showContactEditor,
-                        icon: const Icon(
-                          Icons.add_rounded,
-                          color: Color(0xFF2E9DCA),
-                        ),
+                        icon: const Icon(Icons.add_rounded, color: _kBlue),
                         label: const Text(
                           'Add Contact',
                           style: TextStyle(
-                            color: Color(0xFF2E9DCA),
+                            color: _kBlue,
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
@@ -545,34 +542,60 @@ class _PartnerHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Care Circle',
-              style: TextStyle(
-                color: _kNavy,
-                fontSize: 19,
-                fontWeight: FontWeight.w800,
-              ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      decoration: BoxDecoration(
+        color: _kBlue,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(10),
             ),
-            SizedBox(width: 6),
-            Icon(Icons.lock_outline_rounded, color: _kNavy, size: 20),
-          ],
-        ),
-        SizedBox(height: 10),
-        Text(
-          'Share your progress with someone you trust',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: _kSubtitle,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
+            child: const Icon(
+              Icons.people_outline_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Care Circle',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(width: 6),
+                    Icon(
+                      Icons.lock_outline_rounded,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ],
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Share your progress with someone you trust',
+                  style: TextStyle(color: Colors.white70, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -585,12 +608,12 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: _kCardBg,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: const [
-          BoxShadow(color: _kShadow, blurRadius: 18, offset: Offset(0, 6)),
+          BoxShadow(color: _kShadow, blurRadius: 10, offset: Offset(0, 4)),
         ],
       ),
       child: child,
@@ -609,8 +632,8 @@ class _RangeToggle extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F6FB),
-        borderRadius: BorderRadius.circular(24),
+        color: _kIconBg,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -652,7 +675,7 @@ class _RangeChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           color: selected ? _kBlue : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
           label,
@@ -695,7 +718,7 @@ class _TrendChart extends StatelessWidget {
                         label,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          color: Color(0xFF2E8EC3),
+                          color: _kSubtitle,
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,
                         ),
@@ -737,7 +760,7 @@ class _TrendChartPainter extends CustomPainter {
           ..shader = const LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0x6636A7EA), Color(0x1436A7EA)],
+            colors: [Color(0x556BAED4), Color(0x106BAED4)],
           ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
 
     final linePaint =
@@ -789,7 +812,7 @@ class _MiniStatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _kBlueSoft,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: _kBorder),
       ),
@@ -798,10 +821,7 @@ class _MiniStatCard extends StatelessWidget {
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.14),
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: _kIconBg, shape: BoxShape.circle),
             child: Icon(icon, color: iconColor),
           ),
           const SizedBox(height: 12),
@@ -811,7 +831,6 @@ class _MiniStatCard extends StatelessWidget {
             style: const TextStyle(
               color: _kSubtitle,
               fontSize: 12.5,
-              height: 1.35,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -819,7 +838,7 @@ class _MiniStatCard extends StatelessWidget {
           Text(
             value,
             style: const TextStyle(
-              color: Color(0xFF2B3047),
+              color: _kNavy,
               fontSize: 16,
               fontWeight: FontWeight.w800,
             ),
@@ -846,7 +865,7 @@ class _ActivityTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _kBlueSoft,
+        color: _kIconBg,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
@@ -857,7 +876,7 @@ class _ActivityTile extends StatelessWidget {
           Text(
             value,
             style: const TextStyle(
-              color: Color(0xFF2B3047),
+              color: _kNavy,
               fontSize: 20,
               fontWeight: FontWeight.w800,
             ),
@@ -898,17 +917,17 @@ class _PreferenceTile extends StatelessWidget {
           width: 34,
           height: 34,
           decoration: const BoxDecoration(
-            color: _kBlueSoft,
+            color: _kIconBg,
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: _kBlue, size: 18),
+          child: Icon(icon, color: _kSubtitle, size: 18),
         ),
         const SizedBox(width: 14),
         Expanded(
           child: Text(
             title,
             style: const TextStyle(
-              color: Color(0xFF2B3047),
+              color: _kNavy,
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
@@ -918,7 +937,7 @@ class _PreferenceTile extends StatelessWidget {
           value: value,
           onChanged: onChanged,
           activeColor: Colors.white,
-          activeTrackColor: const Color(0xFF49B7F0),
+          activeTrackColor: _kBlue,
           inactiveThumbColor: Colors.white,
           inactiveTrackColor: _kMuted,
         ),
@@ -944,7 +963,7 @@ class _ContactTile extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _kBorder),
       ),
       child: Row(
@@ -953,14 +972,14 @@ class _ContactTile extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: const BoxDecoration(
-              color: Color(0xFFCBEAF9),
+              color: _kIconBg,
               shape: BoxShape.circle,
             ),
             child: Center(
               child: Text(
                 contact.initials,
                 style: const TextStyle(
-                  color: Color(0xFF2E8EC3),
+                  color: _kSubtitle,
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
                 ),
@@ -975,7 +994,7 @@ class _ContactTile extends StatelessWidget {
                 Text(
                   contact.name,
                   style: const TextStyle(
-                    color: Color(0xFF2B3047),
+                    color: _kNavy,
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                   ),
@@ -989,7 +1008,7 @@ class _ContactTile extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE3F3FD),
+                        color: _kIconBg,
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
@@ -1049,7 +1068,7 @@ class _ContactActionButton extends StatelessWidget {
         width: 30,
         height: 30,
         decoration: const BoxDecoration(
-          color: _kBlueSoft,
+          color: _kIconBg,
           shape: BoxShape.circle,
         ),
         child: Icon(icon, color: _kSubtitle, size: 18),

@@ -17,6 +17,7 @@ const _kCardBg = Colors.white;
 const _kBlue = Color(0xFF6BAED4);
 const _kChipBg = Color(0xFFDEECF8);
 const _kStatBg = Color(0xFFEFF5FB);
+const _kFriendlyFlame = Color(0xFFFFA449);
 const _kHeaderGoalDays = 30;
 
 const _kHabitOptions = [
@@ -921,10 +922,17 @@ class _MindfulScreenState extends State<MindfulScreen> {
                         ),
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        stats.currentStreak >= 4 ? '🔥' : '💙',
-                        style: const TextStyle(fontSize: 18),
-                      ),
+                      if (stats.currentStreak >= 4)
+                        const Icon(
+                          Icons.local_fire_department_rounded,
+                          color: _kFriendlyFlame,
+                          size: 24,
+                        )
+                      else
+                        const Text(
+                          '💙',
+                          style: TextStyle(fontSize: 18),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 8),
