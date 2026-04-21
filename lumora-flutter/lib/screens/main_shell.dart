@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lumora_flutter/screens/anochat_screen.dart';
 import 'package:lumora_flutter/screens/home_screen.dart';
-import 'package:lumora_flutter/screens/new_home_screen.dart';
+
+import 'package:lumora_flutter/screens/readmore_screen.dart';
 import 'package:lumora_flutter/screens/profile_screen.dart';
 import 'package:lumora_flutter/widgets/lumora_nav_bar.dart';
 
@@ -68,8 +69,8 @@ class _MainShellState extends State<MainShell> {
         children: [
           // 0 – Home
           HomeScreen(onProfileTap: () => _switchTab(4)),
-          // 1 – ReadMore (new home screen design)
-          NewHomeScreen(onProfileTap: () => _switchTab(4)),
+          // 1 – ReadMore
+          ReadMoreScreen(onBack: () => _switchTab(0)),
           // 2 – AnonChat
           const AnoChatScreen(),
           // 3 – Partner

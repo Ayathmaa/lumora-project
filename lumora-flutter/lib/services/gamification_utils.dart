@@ -10,17 +10,33 @@ class GamificationUtils {
     5000: 'Legend',
   };
 
-  static String getLevelDisplay(int xp) {
-    int level = 1;
+  static String getLevelTitle(int xp) {
     String title = 'Novice';
     for (final entry in _levelsMap.entries) {
       if (xp >= entry.key) {
         title = entry.value;
+      } else {
+        break;
+      }
+    }
+    return title;
+  }
+
+  static int getLevelNumber(int xp) {
+    int level = 1;
+    for (final entry in _levelsMap.entries) {
+      if (xp >= entry.key) {
         level = (_levelsMap.keys.toList().indexOf(entry.key)) + 1;
       } else {
         break;
       }
     }
+    return level;
+  }
+
+  static String getLevelDisplay(int xp) {
+    final level = getLevelNumber(xp);
+    final title = getLevelTitle(xp);
     return 'Level $level – $title';
   }
 

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'auth_service.dart';
+import 'gamification_utils.dart';
 
 // ── Model ──────────────────────────────────────────────────────────────────
 
@@ -7,6 +8,8 @@ class AnoPost {
   final String id;
   final String uid;
   final String authorName;
+  final String authorLevelTitle;
+  final int authorLevelNumber;
   final String content;
   final String category;
   final DateTime createdAt;
@@ -20,6 +23,8 @@ class AnoPost {
     required this.id,
     required this.uid,
     required this.authorName,
+    required this.authorLevelTitle,
+    required this.authorLevelNumber,
     required this.content,
     required this.category,
     required this.createdAt,
@@ -71,6 +76,8 @@ class AnoChatService {
           resolvedAuthorName?.trim().isNotEmpty == true
               ? resolvedAuthorName!.trim()
               : (d['authorName'] as String? ?? 'Anonymous'),
+      authorLevelTitle: d['authorLevelTitle'] as String? ?? 'Novice',
+      authorLevelNumber: (d['authorLevelNumber'] as num?)?.toInt() ?? 1,
       content: d['content'] as String? ?? '',
       category: d['category'] as String? ?? '',
       createdAt: (d['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -116,9 +123,23 @@ class AnoChatService {
     final safeAuthorName =
         username?.trim().isNotEmpty == true ? username!.trim() : authorName;
 
+    // Fetch user XP to figure out level
+    int userXp = 0;
+    try {
+      final doc = await _db.collection('users').doc(uid).collection('user_stats').doc('gamification').get();
+      if (doc.exists) {
+        userXp = doc.data()?['xp'] as int? ?? 0;
+      }
+    } catch (_) {}
+
+    final levelTitle = GamificationUtils.getLevelTitle(userXp);
+    final levelNumber = GamificationUtils.getLevelNumber(userXp);
+
     await _posts.add({
       'uid': uid,
       'authorName': safeAuthorName,
+      'authorLevelTitle': levelTitle,
+      'authorLevelNumber': levelNumber,
       'content': trimmed,
       'category': category,
       'createdAt': FieldValue.serverTimestamp(),
