@@ -1,6 +1,7 @@
 {
   "firestore": {
-    "rules": "firestore.rules"
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
   },
   "functions": [
     {
@@ -15,4 +16,5 @@
       ]
     }
   ],
-  "flutter": {"platforms":{"android":{"default":{"projectId":"lumora-3b4ec","appId":"1:567558823095:android:6b8bb1b2678c9fd8b88132","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"lumora-3b4ec","appId":"1:567558823095:ios:f07bf508ce6e0e9cb88132","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"lumora-3b4ec","configurations":{"android":"1:567558823095:android:6b8bb1b2678c9fd8b88132","ios":"1:567558823095:ios:f07bf508ce6e0e9cb88132"}}}}}}
+  "flutter": {"platforms":{"android":{"default":{"projectId":"lumora-3b4ec","appId":"1:567558823095:android:6b8bb1b2678c9fd8b88132","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"lumora-3b4ec","appId":"1:567558823095:ios:f07bf508ce6e0e9cb88132","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"lumora-3b4ec","configurations":{"android":"1:567558823095:android:6b8bb1b2678c9fd8b88132","ios":"1:567558823095:ios:f07bf508ce6e0e9cb88132"}}}}}
+}

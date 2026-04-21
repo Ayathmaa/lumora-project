@@ -491,26 +491,45 @@ class _MoodCard extends StatelessWidget {
   }
 
   Widget _buildSavedState() {
-    return Column(
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(
-          Icons.check_circle_rounded,
-          color: Color(0xFF3DAA6E),
-          size: 40,
-        ),
-        const SizedBox(height: 10),
-        const Text(
-          'Mood logged for today!',
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: _kNavy,
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF3DAA6E).withValues(alpha: 0.15),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.check_rounded,
+            color: Color(0xFF3DAA6E),
+            size: 28,
           ),
         ),
-        const SizedBox(height: 4),
-        const Text(
-          'See you tomorrow 🌙',
-          style: TextStyle(fontSize: 13, color: _kSubtitle),
+        const SizedBox(width: 16),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Mood logged for today!',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: _kNavy,
+                ),
+              ),
+              SizedBox(height: 2),
+              Text(
+                'See you tomorrow 🌙',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: _kSubtitle,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );

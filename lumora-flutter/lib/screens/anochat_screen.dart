@@ -300,7 +300,7 @@ class _AnoChatScreenState extends State<AnoChatScreen> {
                   if (snap.hasError) {
                     return Center(
                       child: Text(
-                        'Something went wrong.',
+                        'Something went wrong: ${snap.error}',
                         style: const TextStyle(color: _kSubtitle),
                       ),
                     );
