@@ -8,7 +8,6 @@ import 'package:lumora_flutter/services/auth_service.dart';
 const _kBg = Color(0xFFC8DCF0);
 const _kNavy = Color(0xFF1A3A5C);
 const _kSubtitle = Color(0xFF4A6FA5);
-const _kCardBg = Colors.white;
 const _kBlue = Color(0xFF6BAED4);
 const _kIconBg = Color(0xFFD6ECFA);
 

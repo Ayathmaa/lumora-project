@@ -185,7 +185,7 @@ class AnoChatService {
     }
   }
 
-  /// Streams all of the current user's reactions as Map<postId, reactionType>.
+  /// Streams all of the current user's reactions as `Map<postId, reactionType>`.
   Stream<Map<String, String>> myReactionsStream() {
     try {
       final uid = _uid;
