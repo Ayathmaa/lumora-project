@@ -35,17 +35,19 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = YoutubePlayerController(
+    _controller = YoutubePlayerController.fromVideoId(
+      videoId: widget.meditation.youtubeVideoId,
+      autoPlay: true,
       params: const YoutubePlayerParams(
         showControls: true,
         showFullscreenButton: true,
         mute: false,
         loop: false,
         strictRelatedVideos: true,
+        origin: 'https://www.youtube.com',
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Safari/605.1.15',
       ),
     );
-
-    _controller.loadVideoById(videoId: widget.meditation.youtubeVideoId);
 
     _videoStateSub = _controller.videoStateStream.listen(_handleVideoState);
     _playerValueSub = _controller.stream.listen((value) {
