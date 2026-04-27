@@ -61,3 +61,6 @@ functions/lib/
 firebase-debug.log
 firebase-debug.*.log
 
+
+# Firebase Service Account Key
+serviceAccountKey.json

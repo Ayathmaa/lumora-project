@@ -2,7 +2,10 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../models/meditation.dart';
 import '../services/habitfreedom_service.dart';
+import '../services/meditation_catalog_service.dart';
+import 'meditation_player_screen.dart';
 
 import 'breathing/box_breathing_screen.dart';
 import 'breathing/breathing_history_screen.dart';
@@ -49,35 +52,10 @@ class _MindfulScreenState extends State<MindfulScreen> {
   List<_HabitTracker> _habits = const [];
   String? _selectedHabitId;
   final _habitService = HabitFreedomService();
+  final _meditationCatalogService = MeditationCatalogService();
   final _dropdownKey = GlobalKey();
   OverlayEntry? _dropdownOverlay;
-
-  static const _meditations = [
-    _Meditation(
-      '5 Min Calm Reset',
-      '5:00',
-      Icons.favorite_rounded,
-      Color(0xFF6BAED4),
-    ),
-    _Meditation(
-      '10 Min Anxiety Relief',
-      '10:00',
-      Icons.psychology_rounded,
-      Color(0xFF80C9A4),
-    ),
-    _Meditation(
-      'Sleep Meditation',
-      '15:00',
-      Icons.nightlight_round,
-      Color(0xFF9B8FD4),
-    ),
-    _Meditation(
-      'Self-Compassion Practice',
-      '8:00',
-      Icons.auto_awesome_rounded,
-      Color(0xFFFFCC55),
-    ),
-  ];
+  MeditationCategory _selectedMeditationCategory = MeditationCategory.quick1Min;
 
   static const _breathingExercises = [
     '4-4-4-4 Box Breathing',
@@ -647,12 +625,23 @@ class _MindfulScreenState extends State<MindfulScreen> {
   }
 
   Widget _buildMeditations() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 2),
-          child: Text(
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _kCardBg,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
             'Meditations',
             style: TextStyle(
               fontSize: 15,
@@ -660,18 +649,119 @@ class _MindfulScreenState extends State<MindfulScreen> {
               color: _kNavy,
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 195,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: _meditations.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (_, i) => _MeditationCard(meditation: _meditations[i]),
+          const SizedBox(height: 6),
+          const Text(
+            'Choose a duration and play guided sessions inside the app.',
+            style: TextStyle(fontSize: 12.5, height: 1.45, color: _kSubtitle),
           ),
-        ),
-      ],
+          const SizedBox(height: 14),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children:
+                  MeditationCategory.values.map((category) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _MeditationFilterChip(
+                        label: category.label,
+                        isSelected: category == _selectedMeditationCategory,
+                        onTap: () {
+                          setState(() {
+                            _selectedMeditationCategory = category;
+                          });
+                        },
+                      ),
+                    );
+                  }).toList(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (!_meditationCatalogService.isSignedIn)
+            const _MeditationStatusCard(
+              title: 'Sign in to access meditations',
+              subtitle:
+                  'The meditation library is saved per account and requires a signed-in session.',
+              icon: Icons.lock_outline_rounded,
+            )
+          else
+            StreamBuilder<List<Meditation>>(
+              stream: _meditationCatalogService.streamMeditations(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox(
+                    height: 214,
+                    child: Center(
+                      child: CircularProgressIndicator(color: _kBlue),
+                    ),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return _MeditationStatusCard(
+                    title: 'Could not load meditations',
+                    subtitle:
+                        'Check your connection and try again. The rest of Mindful Space is still available.',
+                    icon: Icons.error_outline_rounded,
+                    actionLabel: 'Retry',
+                    onActionTap: () => setState(() {}),
+                  );
+                }
+
+                final meditations = snapshot.data ?? const <Meditation>[];
+                if (meditations.isEmpty) {
+                  return const _MeditationStatusCard(
+                    title: 'No meditations available yet',
+                    subtitle:
+                        'This library will appear here once meditation videos are added.',
+                    icon: Icons.play_circle_outline_rounded,
+                  );
+                }
+
+                final filtered = meditations
+                    .where(
+                      (meditation) =>
+                          meditation.category == _selectedMeditationCategory,
+                    )
+                    .toList(growable: false);
+
+                if (filtered.isEmpty) {
+                  return _MeditationStatusCard(
+                    title:
+                        'No ${_selectedMeditationCategory.label} sessions yet',
+                    subtitle:
+                        'Pick another duration or add more meditation videos to this category.',
+                    icon: Icons.play_disabled_outlined,
+                  );
+                }
+
+                return SizedBox(
+                  height: 214,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder:
+                        (_, i) => _MeditationCard(
+                          meditation: filtered[i],
+                          onTap: () {
+                            Navigator.of(context).push(
+                              PageRouteBuilder(
+                                transitionDuration: Duration.zero,
+                                reverseTransitionDuration: Duration.zero,
+                                pageBuilder:
+                                    (_, __, ___) => MeditationPlayerScreen(
+                                      meditation: filtered[i],
+                                    ),
+                              ),
+                            );
+                          },
+                        ),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
     );
   }
 
@@ -929,10 +1019,7 @@ class _MindfulScreenState extends State<MindfulScreen> {
                           size: 24,
                         )
                       else
-                        const Text(
-                          '💙',
-                          style: TextStyle(fontSize: 18),
-                        ),
+                        const Text('💙', style: TextStyle(fontSize: 18)),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -1277,69 +1364,205 @@ class _MindfulScreenState extends State<MindfulScreen> {
 }
 
 class _MeditationCard extends StatelessWidget {
-  final _Meditation meditation;
-  const _MeditationCard({required this.meditation});
+  final Meditation meditation;
+  final VoidCallback onTap;
+
+  const _MeditationCard({required this.meditation, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 168,
+        decoration: BoxDecoration(
+          color: _kStatBg,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Image.network(
+                  meditation.thumbnailUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder:
+                      (_, __, ___) => Container(
+                        color: _kChipBg,
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.ondemand_video_rounded,
+                          color: _kBlue,
+                          size: 34,
+                        ),
+                      ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      meditation.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: _kNavy,
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      meditation.durationLabel,
+                      style: const TextStyle(fontSize: 12, color: _kSubtitle),
+                    ),
+                    const Spacer(),
+                    Row(
+                      children: [
+                        Container(
+                          width: 30,
+                          height: 30,
+                          decoration: const BoxDecoration(
+                            color: _kChipBg,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.play_arrow_rounded,
+                            color: _kBlue,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Play now',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: _kSubtitle,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MeditationFilterChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _MeditationFilterChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: isSelected ? _kBlue : _kChipBg,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : _kNavy,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MeditationStatusCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final String? actionLabel;
+  final VoidCallback? onActionTap;
+
+  const _MeditationStatusCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.actionLabel,
+    this.onActionTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 128,
-      padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+      height: 214,
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: _kCardBg,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0C000000),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
+        color: _kStatBg,
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: meditation.color.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(meditation.icon, color: meditation.color, size: 22),
-          ),
-          const SizedBox(height: 7),
+          Icon(icon, color: _kBlue, size: 30),
+          const SizedBox(height: 12),
           Text(
-            meditation.title,
+            title,
             textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
               color: _kNavy,
-              height: 1.3,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
-            meditation.duration,
-            style: const TextStyle(fontSize: 11, color: _kSubtitle),
-          ),
-          const SizedBox(height: 7),
-          Container(
-            width: 28,
-            height: 28,
-            decoration: const BoxDecoration(
-              color: Color(0xFFDEECF8),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.play_arrow_rounded,
-              color: _kBlue,
-              size: 16,
+            subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: _kSubtitle,
+              fontSize: 12.5,
+              height: 1.45,
             ),
           ),
+          if (actionLabel != null && onActionTap != null) ...[
+            const SizedBox(height: 14),
+            TextButton(
+              onPressed: onActionTap,
+              child: Text(
+                actionLabel!,
+                style: const TextStyle(
+                  color: _kBlue,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1559,12 +1782,4 @@ class _HabitStats {
       totalMarkedDays: uniqueDates.length,
     );
   }
-}
-
-class _Meditation {
-  final String title;
-  final String duration;
-  final IconData icon;
-  final Color color;
-  const _Meditation(this.title, this.duration, this.icon, this.color);
 }

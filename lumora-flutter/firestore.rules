@@ -143,6 +143,12 @@ service cloud.firestore {
                       && request.resource.data.score <= 5;
         allow delete: if false;
       }
+
+      // ── users/{uid}/meditation_history/{eventId} ─────────────────────
+      match /meditation_history/{eventId} {
+        allow read, create, update: if isOwner(uid);
+        allow delete: if false;
+      }
     }
 
     // ── usernames/{username} ───────────────────────────────────────────────
@@ -191,6 +197,12 @@ service cloud.firestore {
       // Delete: only the original author may delete their post.
       allow delete: if isSignedIn()
                     && resource.data.uid == request.auth.uid;
+    }
+
+    // ── meditations ────────────────────────────────────────────────────────
+    match /meditations/{meditationId} {
+      allow read: if isSignedIn() && resource.data.isActive == true;
+      allow write: if false;
     }
 
     // ── catch-all: deny everything not explicitly covered ──────────────────
