@@ -627,9 +627,9 @@ export const acceptPartnerInvite = functions.https.onCall(async (data, context) 
 
     // Initial partner sharing preferences
     const defaultPreferences = {
-      shareJournal: false,
-      shareErpProgress: false,
-      shareHabits: false,
+      shareAnxietyRemaining: false,
+      shareDailyMood: false,
+      shareJourneyCalendar: false,
     };
 
     tx.update(senderRef, { 

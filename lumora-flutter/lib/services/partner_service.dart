@@ -31,7 +31,7 @@ class PartnerInvite {
   final String receiverId;
   final String status;
   final DateTime? createdAt;
-  
+
   // Optional field if we fetch sender details to display
   final PartnerUser? sender;
 
@@ -104,7 +104,9 @@ class PartnerService {
         'username': username,
       });
       final List data = result.data as List;
-      return data.map((e) => PartnerUser.fromMap(Map<String, dynamic>.from(e))).toList();
+      return data
+          .map((e) => PartnerUser.fromMap(Map<String, dynamic>.from(e)))
+          .toList();
     } catch (e) {
       throw Exception("Failed to search users: \$e");
     }
@@ -118,24 +120,25 @@ class PartnerService {
         .where('status', isEqualTo: 'pending')
         .snapshots()
         .asyncMap((snapshot) async {
-      List<PartnerInvite> invites = [];
-      for (var doc in snapshot.docs) {
-        // Fetch sender details
-        final data = doc.data();
-        final senderId = data['senderId'] as String?;
-        PartnerUser? sender;
-        if (senderId != null) {
-          final senderDoc = await _db.collection('users').doc(senderId).get();
-          if (senderDoc.exists) {
-            final stData = senderDoc.data()!;
-            stData['uid'] = senderId;
-            sender = PartnerUser.fromMap(stData);
+          List<PartnerInvite> invites = [];
+          for (var doc in snapshot.docs) {
+            // Fetch sender details
+            final data = doc.data();
+            final senderId = data['senderId'] as String?;
+            PartnerUser? sender;
+            if (senderId != null) {
+              final senderDoc =
+                  await _db.collection('users').doc(senderId).get();
+              if (senderDoc.exists) {
+                final stData = senderDoc.data()!;
+                stData['uid'] = senderId;
+                sender = PartnerUser.fromMap(stData);
+              }
+            }
+            invites.add(PartnerInvite.fromDoc(doc, sender: sender));
           }
-        }
-        invites.add(PartnerInvite.fromDoc(doc, sender: sender));
-      }
-      return invites;
-    });
+          return invites;
+        });
   }
 
   /// Stream current user's partner preferences
@@ -151,10 +154,10 @@ class PartnerService {
     return _db.collection('users').doc(_uid).snapshots().asyncMap((doc) async {
       final partnerId = doc.data()?['partnerId'] as String?;
       if (partnerId == null) return null;
-      
+
       final partnerDoc = await _db.collection('users').doc(partnerId).get();
       if (!partnerDoc.exists) return null;
-      
+
       final pData = partnerDoc.data()!;
       pData['uid'] = partnerId;
       return PartnerUser.fromMap(pData);
@@ -166,9 +169,11 @@ class PartnerService {
     return _db.collection('users').doc(_uid).snapshots().asyncMap((doc) async {
       final partnerId = doc.data()?['partnerId'] as String?;
       if (partnerId == null) return PartnerPreferences();
-      
+
       final partnerDoc = await _db.collection('users').doc(partnerId).get();
-      return PartnerPreferences.fromMap(partnerDoc.data()?['partnerPreferences']);
+      return PartnerPreferences.fromMap(
+        partnerDoc.data()?['partnerPreferences'],
+      );
     });
   }
 
@@ -208,7 +213,8 @@ class PartnerService {
   /// Decline an invite (just delete the doc directly, simple enough)
   Future<void> declineInvite(String inviteId) async {
     try {
-      final inviteDoc = await _db.collection('partner_invites').doc(inviteId).get();
+      final inviteDoc =
+          await _db.collection('partner_invites').doc(inviteId).get();
       if (inviteDoc.exists && inviteDoc.data()?['receiverId'] == _uid) {
         await inviteDoc.reference.update({'status': 'declined'});
       }

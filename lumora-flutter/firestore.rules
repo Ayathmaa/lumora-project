@@ -12,6 +12,30 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
+    function userDoc(uid) {
+      return get(/databases/$(database)/documents/users/$(uid));
+    }
+
+    function areLinkedPartners(uid) {
+      return isSignedIn()
+             && request.auth.uid != uid
+             && userDoc(uid).data.partnerId == request.auth.uid
+             && userDoc(request.auth.uid).data.partnerId == uid;
+    }
+
+    function partnerSharesAnalytics(uid) {
+      return areLinkedPartners(uid)
+             && (
+                  userDoc(uid).data.partnerPreferences.shareAnxietyRemaining == true
+                  || userDoc(uid).data.partnerPreferences.shareDailyMood == true
+                );
+    }
+
+    function partnerSharesJourneyCalendar(uid) {
+      return areLinkedPartners(uid)
+             && userDoc(uid).data.partnerPreferences.shareJourneyCalendar == true;
+    }
+
     // ── users/{uid} ────────────────────────────────────────────────────────
     // Any signed-in user can read basic profile documents (to load partner names/avatars).
     // Only the owner can write their own profile document.
@@ -79,13 +103,13 @@ service cloud.firestore {
 
       // ── users/{uid}/timeline_events/{eventId} ────────────────────────
       match /timeline_events/{eventId} {
-        allow read:   if isOwner(uid);
+        allow read:   if isOwner(uid) || partnerSharesJourneyCalendar(uid);
         allow write:  if false; // strictly managed by Cloud Functions
       }
 
       // ── users/{uid}/daily_analytics/{dateKey} ────────────────────────
       match /daily_analytics/{dateKey} {
-        allow read:   if isOwner(uid);
+        allow read:   if isOwner(uid) || partnerSharesAnalytics(uid);
         allow write:  if false; // strictly managed by Cloud Functions
       }
 

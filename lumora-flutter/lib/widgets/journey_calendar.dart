@@ -34,6 +34,16 @@ class _JourneyCalendarWidgetState extends State<JourneyCalendarWidget> {
     _fetchEvents();
   }
 
+  @override
+  void didUpdateWidget(covariant JourneyCalendarWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userId != widget.userId) {
+      _focusedDay = DateTime.now();
+      _selectedDay = _focusedDay;
+      _fetchEvents();
+    }
+  }
+
   Future<void> _fetchEvents() async {
     setState(() => _isLoading = true);
     final events = await ProgressService().fetchAllActivities(widget.userId);
@@ -82,71 +92,72 @@ class _JourneyCalendarWidgetState extends State<JourneyCalendarWidget> {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: dayEvents.map((e) {
-        Color iconColor = Colors.grey;
-        IconData icon = Icons.check_circle;
-        if (e.type == 'Journal') {
-          iconColor = _kDotJournal;
-          icon = Icons.menu_book;
-        }
-        if (e.type == 'ERP') {
-          iconColor = _kDotErp;
-          icon = Icons.timer;
-        }
-        if (e.type == 'Breathing') {
-          iconColor = _kDotBreathing;
-          icon = Icons.air;
-        }
-        if (e.type == 'Habit') {
-          iconColor = _kDotHabit;
-          icon = Icons.calendar_today;
-        }
+      children:
+          dayEvents.map((e) {
+            Color iconColor = Colors.grey;
+            IconData icon = Icons.check_circle;
+            if (e.type == 'Journal') {
+              iconColor = _kDotJournal;
+              icon = Icons.menu_book;
+            }
+            if (e.type == 'ERP') {
+              iconColor = _kDotErp;
+              icon = Icons.timer;
+            }
+            if (e.type == 'Breathing') {
+              iconColor = _kDotBreathing;
+              icon = Icons.air;
+            }
+            if (e.type == 'Habit') {
+              iconColor = _kDotHabit;
+              icon = Icons.calendar_today;
+            }
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: _kCardBg,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: iconColor, size: 28),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      e.title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: _kNavy,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      e.detail,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: _kSubtitle,
-                      ),
-                    ),
-                  ],
-                ),
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _kCardBg,
+                borderRadius: BorderRadius.circular(12),
               ),
-              Text(
-                '${e.date.hour.toString().padLeft(2, '0')}:${e.date.minute.toString().padLeft(2, '0')}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: _kSubtitle,
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Row(
+                children: [
+                  Icon(icon, color: iconColor, size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          e.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: _kNavy,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          e.detail,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: _kSubtitle,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    '${e.date.hour.toString().padLeft(2, '0')}:${e.date.minute.toString().padLeft(2, '0')}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: _kSubtitle,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        );
-      }).toList(),
+            );
+          }).toList(),
     );
   }
 
@@ -204,7 +215,13 @@ class _JourneyCalendarWidgetState extends State<JourneyCalendarWidget> {
                   bottom: 1,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: events.map((e) => _buildEventMarker((e as ActivityEvent).type)).toList(),
+                    children:
+                        events
+                            .map(
+                              (e) =>
+                                  _buildEventMarker((e as ActivityEvent).type),
+                            )
+                            .toList(),
                   ),
                 );
               },
