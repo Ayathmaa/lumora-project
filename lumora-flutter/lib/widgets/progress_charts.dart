@@ -9,13 +9,13 @@ class ChartDataPoint {
 }
 
 class ProgressChartsWidget extends StatelessWidget {
-  final List<ChartDataPoint> dailyAnxietyPoints;
-  final List<ChartDataPoint> dailyMoodPoints;
+  final List<ChartDataPoint>? dailyAnxietyPoints;
+  final List<ChartDataPoint>? dailyMoodPoints;
 
   const ProgressChartsWidget({
     super.key,
-    required this.dailyAnxietyPoints,
-    required this.dailyMoodPoints,
+    this.dailyAnxietyPoints,
+    this.dailyMoodPoints,
   });
 
   Widget _buildChart(
@@ -259,20 +259,22 @@ class ProgressChartsWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _buildChart(
-          "Anxiety Remaining (%)",
-          dailyAnxietyPoints,
-          const Color(0xFFEF4444),
-          100,
-          isDays: true,
-        ),
-        _buildChart(
-          "Daily Mood (1-5 Level)",
-          dailyMoodPoints,
-          const Color(0xFF10B981),
-          5,
-          isDays: true,
-        ),
+        if (dailyAnxietyPoints != null)
+          _buildChart(
+            "Anxiety Remaining (%)",
+            dailyAnxietyPoints!,
+            const Color(0xFFEF4444),
+            100,
+            isDays: true,
+          ),
+        if (dailyMoodPoints != null)
+          _buildChart(
+            "Daily Mood (1-5 Level)",
+            dailyMoodPoints!,
+            const Color(0xFF10B981),
+            5,
+            isDays: true,
+          ),
       ],
     );
   }

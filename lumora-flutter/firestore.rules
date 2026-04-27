@@ -13,9 +13,10 @@ service cloud.firestore {
     }
 
     // ── users/{uid} ────────────────────────────────────────────────────────
-    // Only the owner can read or write their own profile document.
+    // Any signed-in user can read basic profile documents (to load partner names/avatars).
+    // Only the owner can write their own profile document.
     match /users/{uid} {
-      allow read:   if isOwner(uid);
+      allow read:   if isSignedIn();
       allow create: if isOwner(uid)
                     && request.resource.data.keys().hasAll(
                          ['name', 'email', 'username', 'createdAt']
@@ -130,6 +131,14 @@ service cloud.firestore {
                     && request.resource.data.keys().hasOnly(['uid'])
                     && request.resource.data.uid == request.auth.uid;
       allow update, delete: if false;
+    }
+
+    // ── partner_invites ────────────────────────────────────────────────────
+    match /partner_invites/{inviteId} {
+      allow read:   if isSignedIn() 
+                    && (resource.data.senderId == request.auth.uid 
+                        || resource.data.receiverId == request.auth.uid);
+      allow create, update, delete: if false; // strictly managed by Cloud Functions
     }
 
     // ── anoPosts ───────────────────────────────────────────────────────────

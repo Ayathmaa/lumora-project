@@ -530,3 +530,160 @@ export const onUserAccountDeleted = functions.auth.user().onDelete(async (user) 
     console.error(`Fatal error purging user data for UID ${uid}:`, error);
   }
 });
+
+// ── 5. Partner / Pairing Flow ─────────────────────────────────────────────
+
+export const searchUsers = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "User must be authenticated.");
+  const searchTerm = data.username?.trim().toLowerCase();
+  if (!searchTerm) return [];
+
+  // Prefix search for usernames
+  const snapshot = await db.collection("users")
+    .where("username", ">=", searchTerm)
+    .where("username", "<=", searchTerm + "\uf8ff")
+    .limit(10)
+    .get();
+
+  const results: any[] = [];
+  snapshot.forEach(doc => {
+    if (doc.id === context.auth?.uid) return; // exclude self
+    const userData = doc.data();
+    results.push({
+      uid: doc.id,
+      username: userData.username,
+      displayName: userData.displayName || "",
+      avatarUrl: userData.avatarUrl || "",
+    });
+  });
+
+  return results;
+});
+
+export const sendPartnerInvite = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "User must be authenticated.");
+  const senderId = context.auth.uid;
+  const receiverId = data.receiverId;
+
+  if (!receiverId) throw new functions.https.HttpsError("invalid-argument", "Receiver ID is required.");
+  if (senderId === receiverId) throw new functions.https.HttpsError("invalid-argument", "Cannot invite yourself.");
+
+  const receiverDoc = await db.collection("users").doc(receiverId).get();
+  if (!receiverDoc.exists) throw new functions.https.HttpsError("not-found", "Receiver not found.");
+
+  // Check if there is already a pending invite
+  const existingInvites = await db.collection("partner_invites")
+    .where("senderId", "==", senderId)
+    .where("receiverId", "==", receiverId)
+    .where("status", "==", "pending")
+    .get();
+
+  if (!existingInvites.empty) {
+    throw new functions.https.HttpsError("already-exists", "An invite is already pending.");
+  }
+
+  // Check if they are already partners
+  const senderDoc = await db.collection("users").doc(senderId).get();
+  if (senderDoc.data()?.partnerId === receiverId) {
+    throw new functions.https.HttpsError("already-exists", "You are already partners.");
+  }
+
+  const inviteData = {
+    senderId,
+    receiverId,
+    status: "pending",
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  const docRef = await db.collection("partner_invites").add(inviteData);
+  return { id: docRef.id, ...inviteData };
+});
+
+export const acceptPartnerInvite = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "User must be authenticated.");
+  const uid = context.auth.uid;
+  const inviteId = data.inviteId;
+
+  if (!inviteId) throw new functions.https.HttpsError("invalid-argument", "Invite ID is required.");
+
+  return db.runTransaction(async (tx) => {
+    const inviteRef = db.collection("partner_invites").doc(inviteId);
+    const inviteDoc = await tx.get(inviteRef);
+
+    if (!inviteDoc.exists) throw new functions.https.HttpsError("not-found", "Invite not found.");
+    
+    const inviteData = inviteDoc.data()!;
+    if (inviteData.receiverId !== uid) {
+      throw new functions.https.HttpsError("permission-denied", "You can only accept invites sent to you.");
+    }
+    if (inviteData.status !== "pending") {
+      throw new functions.https.HttpsError("failed-precondition", "Invite is no longer pending.");
+    }
+
+    const senderId = inviteData.senderId;
+
+    const senderRef = db.collection("users").doc(senderId);
+    const receiverRef = db.collection("users").doc(uid);
+
+    // Initial partner sharing preferences
+    const defaultPreferences = {
+      shareJournal: false,
+      shareErpProgress: false,
+      shareHabits: false,
+    };
+
+    tx.update(senderRef, { 
+      partnerId: uid,
+      partnerPreferences: defaultPreferences
+    });
+    tx.update(receiverRef, { 
+      partnerId: senderId,
+      partnerPreferences: defaultPreferences
+    });
+
+    tx.update(inviteRef, { 
+      status: "accepted",
+      acceptedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Also invalidate any other pending requests between the two or from others if we only allow 1 partner
+    return { success: true, partnerId: senderId };
+  });
+});
+
+export const removePartner = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "User must be authenticated.");
+  const uid = context.auth.uid;
+
+  return db.runTransaction(async (tx) => {
+    const userRef = db.collection("users").doc(uid);
+    const userDoc = await tx.get(userRef);
+
+    if (!userDoc.exists) throw new functions.https.HttpsError("not-found", "User not found.");
+    
+    const partnerId = userDoc.data()?.partnerId;
+    if (!partnerId) {
+      throw new functions.https.HttpsError("failed-precondition", "You do not have a partner to remove.");
+    }
+
+    const partnerRef = db.collection("users").doc(partnerId);
+
+    // Remove from self
+    tx.update(userRef, {
+      partnerId: admin.firestore.FieldValue.delete(),
+      partnerPreferences: admin.firestore.FieldValue.delete()
+    });
+
+    // Remove from partner (using set / update with condition if possible, but blind update in tx is fine as long as they are partnered)
+    // Avoid failing if partner deleted account
+    const partnerDoc = await tx.get(partnerRef);
+    if (partnerDoc.exists && partnerDoc.data()?.partnerId === uid) {
+      tx.update(partnerRef, {
+        partnerId: admin.firestore.FieldValue.delete(),
+        partnerPreferences: admin.firestore.FieldValue.delete()
+      });
+    }
+
+    return { success: true };
+  });
+});

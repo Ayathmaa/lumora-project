@@ -20,9 +20,9 @@ class ProgressService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  Future<List<ActivityEvent>> fetchAllActivities() async {
+  Future<List<ActivityEvent>> fetchAllActivities([String? userId]) async {
     try {
-      final uid = _auth.currentUser?.uid;
+      final uid = userId ?? _auth.currentUser?.uid;
       if (uid == null) return [];
 
       final snapshot =

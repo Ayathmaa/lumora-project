@@ -6,8 +6,8 @@ class ChartDataService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  Stream<Map<String, List<ChartDataPoint>>> getChartDataStream() {
-    final uid = _auth.currentUser?.uid;
+  Stream<Map<String, List<ChartDataPoint>>> getChartDataStream([String? userId]) {
+    final uid = userId ?? _auth.currentUser?.uid;
     if (uid == null) {
       return Stream.value({'dailyAnxiety': [], 'dailyMood': []});
     }
