@@ -39,9 +39,7 @@ const List<_ReadMoreTopic> _topics = [
 ];
 
 class ReadMoreScreen extends StatefulWidget {
-  final VoidCallback? onBack;
-
-  const ReadMoreScreen({super.key, this.onBack});
+  const ReadMoreScreen({super.key});
 
   @override
   State<ReadMoreScreen> createState() => _ReadMoreScreenState();
@@ -99,29 +97,6 @@ class _ReadMoreScreenState extends State<ReadMoreScreen> {
                 ),
                 child: Row(
                   children: [
-                    GestureDetector(
-                      onTap:
-                          widget.onBack ??
-                          () {
-                            if (Navigator.of(context).canPop()) {
-                              Navigator.of(context).pop();
-                            }
-                          },
-                      child: Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: Colors.white24,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          color: Colors.white,
-                          size: 16,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
                     const Icon(
                       Icons.menu_book_rounded,
                       color: Colors.white,

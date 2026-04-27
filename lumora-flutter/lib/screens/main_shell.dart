@@ -31,7 +31,7 @@ class _MainShellState extends State<MainShell> {
           // 0 – Home
           HomeScreen(onProfileTap: () => _switchTab(4)),
           // 1 – ReadMore
-          ReadMoreScreen(onBack: () => _switchTab(0)),
+          const ReadMoreScreen(),
           // 2 – AnonChat
           const AnoChatScreen(),
           // 3 – Partner

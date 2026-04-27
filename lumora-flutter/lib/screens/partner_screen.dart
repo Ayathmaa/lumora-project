@@ -199,6 +199,11 @@ class _PartnerScreenState extends State<PartnerScreen> {
   }
 
   Widget _buildDashboardView(BuildContext context, PartnerUser partner) {
+    final partnerName =
+        partner.displayName.trim().isNotEmpty
+            ? partner.displayName.trim()
+            : partner.username;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
       child: Column(
@@ -265,7 +270,7 @@ class _PartnerScreenState extends State<PartnerScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${partner.displayName}\'s Shared Progress',
+                      '$partnerName\'s Shared Progress',
                       style: const TextStyle(
                         color: _kNavy,
                         fontSize: 16,
@@ -605,7 +610,6 @@ class _PartnerScreenState extends State<PartnerScreen> {
           ),
     );
   }
-
 }
 
 class _PartnerHeader extends StatelessWidget {
@@ -625,6 +629,10 @@ class _PartnerHeader extends StatelessWidget {
       stream: partnerService.streamMyPartner(),
       builder: (context, partnerSnapshot) {
         final partner = partnerSnapshot.data;
+        final partnerName =
+            partner != null && partner.displayName.trim().isNotEmpty
+                ? partner.displayName.trim()
+                : partner?.username;
         return StreamBuilder<List<PartnerInvite>>(
           stream: partnerService.streamPendingInvites(),
           builder: (context, invitesSnapshot) {
@@ -661,7 +669,7 @@ class _PartnerHeader extends StatelessWidget {
                           children: [
                             Text(
                               partner != null
-                                  ? 'Care Circle (${partner.displayName})'
+                                  ? 'Care Circle ($partnerName)'
                                   : 'Care Circle',
                               style: const TextStyle(
                                 color: Colors.white,
