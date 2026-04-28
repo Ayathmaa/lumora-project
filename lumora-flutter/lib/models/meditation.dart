@@ -28,8 +28,7 @@ enum MeditationCategory {
 class Meditation {
   final String id;
   final String title;
-  final String youtubeUrl;
-  final String youtubeVideoId;
+  final String videoPath;
   final MeditationCategory category;
   final int durationMinutes;
   final String durationLabel;
@@ -41,8 +40,7 @@ class Meditation {
   const Meditation({
     required this.id,
     required this.title,
-    required this.youtubeUrl,
-    required this.youtubeVideoId,
+    required this.videoPath,
     required this.category,
     required this.durationMinutes,
     required this.durationLabel,
@@ -65,8 +63,7 @@ class Meditation {
           (data['title'] as String?)?.trim().isNotEmpty == true
               ? (data['title'] as String).trim()
               : 'Meditation',
-      youtubeUrl: (data['youtubeUrl'] as String?) ?? '',
-      youtubeVideoId: (data['youtubeVideoId'] as String?) ?? '',
+      videoPath: (data['videoPath'] as String?) ?? '',
       category: category,
       durationMinutes:
           (data['durationMinutes'] as num?)?.toInt() ??

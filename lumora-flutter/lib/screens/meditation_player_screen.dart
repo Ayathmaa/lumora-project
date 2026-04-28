@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 import '../models/meditation.dart';
 import '../services/meditation_history_service.dart';
@@ -23,9 +25,11 @@ class MeditationPlayerScreen extends StatefulWidget {
 
 class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
   final _historyService = MeditationHistoryService();
-  late final YoutubePlayerController _controller;
-  StreamSubscription<YoutubeVideoState>? _videoStateSub;
-  StreamSubscription<YoutubePlayerValue>? _playerValueSub;
+  VideoPlayerController? _videoPlayerController;
+  ChewieController? _chewieController;
+
+  bool _isLoading = true;
+  String? _errorMessage;
 
   String? _historySessionId;
   bool _hasRecordedStart = false;
@@ -35,33 +39,67 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = YoutubePlayerController.fromVideoId(
-      videoId: widget.meditation.youtubeVideoId,
-      autoPlay: true,
-      params: const YoutubePlayerParams(
-        showControls: true,
-        showFullscreenButton: true,
-        mute: false,
-        loop: false,
-        strictRelatedVideos: true,
-        origin: 'https://www.youtube.com',
-        userAgent:
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Safari/605.1.15',
-      ),
-    );
+    _initializePlayer();
+  }
 
-    _videoStateSub = _controller.videoStateStream.listen(_handleVideoState);
-    _playerValueSub = _controller.stream.listen((value) {
-      if (value.playerState == PlayerState.ended) {
-        _recordCompletionIfNeeded();
-      }
-    });
+  Future<void> _initializePlayer() async {
+    try {
+      final downloadUrl =
+          await FirebaseStorage.instance
+              .ref(widget.meditation.videoPath)
+              .getDownloadURL();
+
+      _videoPlayerController = VideoPlayerController.networkUrl(
+        Uri.parse(downloadUrl),
+      );
+
+      await _videoPlayerController!.initialize();
+
+      _videoPlayerController!.addListener(_videoListener);
+
+      _chewieController = ChewieController(
+        videoPlayerController: _videoPlayerController!,
+        autoPlay: true,
+        looping: false,
+        allowFullScreen: true,
+        materialProgressColors: ChewieProgressColors(
+          playedColor: _kBlue,
+          handleColor: _kNavy,
+          backgroundColor: Colors.white54,
+          bufferedColor: Colors.white70,
+        ),
+      );
+
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Video Player Initialization Error: $e');
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Could not load video:\n$e';
+      });
+    }
+  }
+
+  void _videoListener() {
+    if (_videoPlayerController == null) return;
+
+    final position = _videoPlayerController!.value.position.inSeconds;
+    final duration = _videoPlayerController!.value.duration.inSeconds;
+
+    if (duration > 0 && position >= duration && !_hasRecordedCompletion) {
+      _recordCompletionIfNeeded(positionSeconds: position);
+    } else {
+      _handleVideoState(position, duration);
+    }
   }
 
   Duration get _effectiveDuration {
-    final actual = _controller.metadata.duration;
-    if (actual.inSeconds > 0) {
-      return actual;
+    if (_videoPlayerController != null &&
+        _videoPlayerController!.value.isInitialized) {
+      final actual = _videoPlayerController!.value.duration;
+      if (actual.inSeconds > 0) return actual;
     }
     return Duration(minutes: widget.meditation.durationMinutes);
   }
@@ -72,9 +110,10 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
         : 'Guided meditation';
   }
 
-  Future<void> _handleVideoState(YoutubeVideoState state) async {
-    final positionSeconds = state.position.inSeconds;
-
+  Future<void> _handleVideoState(
+    int positionSeconds,
+    int durationSeconds,
+  ) async {
     if (!_hasRecordedStart && positionSeconds >= 3) {
       _hasRecordedStart = true;
       try {
@@ -90,7 +129,6 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
     if (_historySessionId == null) return;
 
     if (!_hasRecordedCompletion) {
-      final durationSeconds = _effectiveDuration.inSeconds;
       final progress =
           durationSeconds <= 0 ? 0.0 : positionSeconds / durationSeconds;
       if (progress >= 0.9) {
@@ -129,103 +167,100 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen> {
 
   @override
   void dispose() {
-    _videoStateSub?.cancel();
-    _playerValueSub?.cancel();
-    _controller.close();
+    _videoPlayerController?.removeListener(_videoListener);
+    _videoPlayerController?.dispose();
+    _chewieController?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return YoutubePlayerScaffold(
-      controller: _controller,
-      builder: (context, player) {
-        return Scaffold(
-          backgroundColor: _kBg,
-          body: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _PlayerHeader(title: widget.meditation.title),
-                  const SizedBox(height: 16),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: player,
+    return Scaffold(
+      backgroundColor: _kBg,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _PlayerHeader(title: widget.meditation.title),
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: Container(
+                    color: Colors.black,
+                    child:
+                        _isLoading
+                            ? const Center(
+                              child: CircularProgressIndicator(color: _kBlue),
+                            )
+                            : _errorMessage != null
+                            ? Center(
+                              child: Text(
+                                _errorMessage!,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            )
+                            : Chewie(controller: _chewieController!),
                   ),
-                  const SizedBox(height: 14),
-                  StreamBuilder<YoutubeVideoState>(
-                    stream: _controller.videoStateStream,
-                    initialData: const YoutubeVideoState(),
-                    builder: (context, snapshot) {
-                      final position =
-                          snapshot.data?.position.inMilliseconds ?? 0;
-                      final duration = _effectiveDuration.inMilliseconds;
-
-                      return LinearProgressIndicator(
-                        value: duration <= 0 ? 0 : position / duration,
-                        minHeight: 5,
-                        borderRadius: BorderRadius.circular(999),
-                        backgroundColor: Colors.white54,
-                        valueColor: const AlwaysStoppedAnimation<Color>(_kBlue),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 18),
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: _kCardBg,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x0A000000),
-                          blurRadius: 8,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.meditation.title,
-                          style: const TextStyle(
-                            color: _kNavy,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _MetaChip(label: widget.meditation.durationLabel),
-                            _MetaChip(label: _sessionTypeLabel),
-                          ],
-                        ),
-                        if (widget.meditation.description.isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          Text(
-                            widget.meditation.description,
-                            style: const TextStyle(
-                              color: _kSubtitle,
-                              fontSize: 14,
-                              height: 1.5,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(height: 14),
+              // We removed the custom LinearProgressIndicator because Chewie provides its own scrub bar
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: _kCardBg,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x0A000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.meditation.title,
+                      style: const TextStyle(
+                        color: _kNavy,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _MetaChip(label: widget.meditation.durationLabel),
+                        _MetaChip(label: _sessionTypeLabel),
+                      ],
+                    ),
+                    if (widget.meditation.description.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        widget.meditation.description,
+                        style: const TextStyle(
+                          color: _kSubtitle,
+                          fontSize: 14,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

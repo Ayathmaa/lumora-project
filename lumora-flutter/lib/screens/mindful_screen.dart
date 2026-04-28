@@ -1388,20 +1388,31 @@ class _MeditationCard extends StatelessWidget {
               ),
               child: AspectRatio(
                 aspectRatio: 16 / 9,
-                child: Image.network(
-                  meditation.thumbnailUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder:
-                      (_, __, ___) => Container(
-                        color: _kChipBg,
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          Icons.ondemand_video_rounded,
-                          color: _kBlue,
-                          size: 34,
+                child:
+                    meditation.thumbnailUrl.isEmpty
+                        ? Container(
+                          color: _kChipBg,
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.ondemand_video_rounded,
+                            color: _kBlue,
+                            size: 34,
+                          ),
+                        )
+                        : Image.network(
+                          meditation.thumbnailUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder:
+                              (_, __, ___) => Container(
+                                color: _kChipBg,
+                                alignment: Alignment.center,
+                                child: const Icon(
+                                  Icons.ondemand_video_rounded,
+                                  color: _kBlue,
+                                  size: 34,
+                                ),
+                              ),
                         ),
-                      ),
-                ),
               ),
             ),
             Expanded(

@@ -26,7 +26,7 @@ class MeditationHistoryService {
     await ref.set({
       'meditationId': meditation.id,
       'titleSnapshot': meditation.title,
-      'youtubeVideoId': meditation.youtubeVideoId,
+      'videoPath': meditation.videoPath,
       'category': meditation.category.firestoreValue,
       'durationMinutes': meditation.durationMinutes,
       'startedAt': FieldValue.serverTimestamp(),

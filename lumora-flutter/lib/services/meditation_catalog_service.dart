@@ -41,34 +41,4 @@ class MeditationCatalogService {
           return meditations;
         });
   }
-
-  static String? extractYoutubeVideoId(String url) {
-    final uri = Uri.tryParse(url.trim());
-    if (uri == null) return null;
-
-    final host = uri.host.toLowerCase();
-
-    if (host.contains('youtu.be')) {
-      return uri.pathSegments.isEmpty ? null : uri.pathSegments.first;
-    }
-
-    if (host.contains('youtube.com')) {
-      if (uri.queryParameters['v'] case final String value
-          when value.trim().isNotEmpty) {
-        return value.trim();
-      }
-
-      if (uri.pathSegments.length >= 2 &&
-          (uri.pathSegments.first == 'embed' ||
-              uri.pathSegments.first == 'shorts')) {
-        return uri.pathSegments[1];
-      }
-    }
-
-    return null;
-  }
-
-  static String thumbnailUrlForVideoId(String videoId) {
-    return 'https://i.ytimg.com/vi/$videoId/hqdefault.jpg';
-  }
 }
