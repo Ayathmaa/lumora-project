@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
 import 'package:lumora_flutter/screens/signup_screen.dart';
+import 'package:lumora_flutter/screens/questionnaire_screen.dart';
 import 'package:lumora_flutter/screens/main_shell.dart';
 import 'package:lumora_flutter/screens/google_profile_completion_screen.dart';
 import 'package:lumora_flutter/screens/anonymous_username_screen.dart';
@@ -31,6 +32,13 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _rememberMe = false;
 
   Future<void> _signInAnonymously() async {
+    final passed = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const QuestionnaireScreen()),
+    );
+    if (passed != true) return;
+
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       await _authService.signInAnonymously();
@@ -91,6 +99,19 @@ class _LoginScreenState extends State<LoginScreen> {
       final result = await _authService.signInWithGoogle();
       if (!mounted) return;
       if (result.additionalUserInfo?.isNewUser == true) {
+        setState(() => _isLoading = false);
+        final passed = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (_) => const QuestionnaireScreen(deleteAccountOnFail: true),
+          ),
+        );
+        if (passed != true) {
+          await _authService.signOut();
+          return;
+        }
+        if (!mounted) return;
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder:
@@ -544,7 +565,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const SignupScreen(),
+                                builder:
+                                    (_) => const QuestionnaireScreen(
+                                      nextScreen: SignupScreen(),
+                                    ),
                               ),
                             ),
                         child: const Text(
