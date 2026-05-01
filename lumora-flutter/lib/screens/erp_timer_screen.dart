@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
+import '../models/meditation.dart';
 import '../services/erp_timer_service.dart';
+import '../services/meditation_catalog_service.dart';
+import 'meditation_player_screen.dart';
 
 const _kBg = Color(0xFFD0E4F4);
 const _kNavy = Color(0xFF1A3A5C);
@@ -9,12 +12,7 @@ const _kSubtitle = Color(0xFF4A6FA5);
 const _kCardBg = Colors.white;
 const _kIconBg = Color(0xFFD6ECFA);
 const _kBlue = Color(0xFF6BAED4);
-
-class _Exercise {
-  final IconData icon;
-  final String label;
-  const _Exercise(this.icon, this.label);
-}
+const _kStatBg = Color(0xFFEFF5FB);
 
 class ErpTimerScreen extends StatefulWidget {
   const ErpTimerScreen({super.key});
@@ -38,9 +36,6 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
   double _preAnxiety = 5;
   double _postAnxiety = 5;
 
-  // Mindful exercise selection
-  String? _selectedExercise;
-
   // Session reflection
   final TextEditingController _reflectionCtrl = TextEditingController();
   bool _resistedCompulsions = false;
@@ -50,13 +45,7 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
   final Set<String> _selectedTriggers = {};
 
   final _erpService = ErpTimerService();
-
-  static const _exercises = [
-    _Exercise(Icons.air, 'Breathing Exercise'),
-    _Exercise(Icons.headphones_outlined, 'Guided Meditation'),
-    _Exercise(Icons.eco_outlined, 'Grounding'),
-    _Exercise(Icons.show_chart_rounded, 'Body Scan'),
-  ];
+  final _meditationCatalogService = MeditationCatalogService();
 
   static const _difficulties = ['Easy', 'Medium', 'Hard'];
   static const _triggers = [
@@ -283,8 +272,8 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
                 _postAnxiety,
                 (v) => setState(() => _postAnxiety = v),
               ),
-              // const SizedBox(height: 14),
-              // _buildMindfulExerciseCard(),
+              const SizedBox(height: 14),
+              _buildMeditationSuggestionsCard(),
               const SizedBox(height: 14),
               _buildReflectionCard(),
               const SizedBox(height: 20),
@@ -606,9 +595,8 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
     );
   }
 
-  // ── Mindful exercise card ─────────────────────────────────────────────────
-  // ignore: unused_element
-  Widget _buildMindfulExerciseCard() {
+  // ── Meditation suggestions ───────────────────────────────────────────────
+  Widget _buildMeditationSuggestionsCard() {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -625,60 +613,114 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Meditation Suggestions',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: _kNavy,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: _kIconBg,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '$_selectedMinutes min',
+                  style: const TextStyle(
+                    color: _kBlue,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
           const Text(
-            'Add a Mindful Exercise',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: _kNavy,
-            ),
+            'Optional videos matched to your ERP timer. The session is completed by finishing the timer, not by watching a video.',
+            style: TextStyle(fontSize: 12, color: _kSubtitle, height: 1.4),
           ),
           const SizedBox(height: 14),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 2.5,
-            children:
-                _exercises.map((e) {
-                  final selected = _selectedExercise == e.label;
-                  return GestureDetector(
-                    onTap:
-                        () => setState(() {
-                          _selectedExercise = selected ? null : e.label;
-                        }),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 160),
-                      decoration: BoxDecoration(
-                        color: selected ? const Color(0x266BAED4) : _kIconBg,
-                        borderRadius: BorderRadius.circular(14),
-                        border:
-                            selected
-                                ? Border.all(color: _kBlue, width: 1.5)
-                                : null,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(e.icon, color: _kBlue, size: 20),
-                          const SizedBox(height: 4),
-                          Text(
-                            e.label,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: _kNavy,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
+          if (!_meditationCatalogService.isSignedIn)
+            const _MeditationSuggestionStatus(
+              title: 'Sign in to access meditation videos',
+              icon: Icons.lock_outline_rounded,
+            )
+          else
+            StreamBuilder<List<Meditation>>(
+              stream: _meditationCatalogService.streamMeditations(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox(
+                    height: 188,
+                    child: Center(
+                      child: CircularProgressIndicator(color: _kBlue),
                     ),
                   );
-                }).toList(),
-          ),
+                }
+
+                if (snapshot.hasError) {
+                  return const _MeditationSuggestionStatus(
+                    title: 'Could not load meditation videos',
+                    icon: Icons.error_outline_rounded,
+                  );
+                }
+
+                final meditations = snapshot.data ?? const <Meditation>[];
+                final suggestions = meditations
+                    .where(
+                      (meditation) =>
+                          meditation.durationMinutes == _selectedMinutes ||
+                          meditation.category.durationMinutes ==
+                              _selectedMinutes,
+                    )
+                    .toList(growable: false);
+
+                if (suggestions.isEmpty) {
+                  return _MeditationSuggestionStatus(
+                    title: 'No $_selectedMinutes min meditations yet',
+                    icon: Icons.play_disabled_outlined,
+                  );
+                }
+
+                return SizedBox(
+                  height: 188,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: suggestions.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder: (context, i) {
+                      final meditation = suggestions[i];
+                      return _ErpMeditationCard(
+                        meditation: meditation,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            PageRouteBuilder(
+                              transitionDuration: Duration.zero,
+                              reverseTransitionDuration: Duration.zero,
+                              pageBuilder:
+                                  (_, __, ___) => MeditationPlayerScreen(
+                                    meditation: meditation,
+                                  ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
         ],
       ),
     );
@@ -902,6 +944,155 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
 }
 
 // ── Helper widgets ────────────────────────────────────────────────────────
+class _ErpMeditationCard extends StatelessWidget {
+  final Meditation meditation;
+  final VoidCallback onTap;
+
+  const _ErpMeditationCard({required this.meditation, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 156,
+        decoration: BoxDecoration(
+          color: _kStatBg,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(18),
+              ),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child:
+                    meditation.thumbnailUrl.isEmpty
+                        ? Container(
+                          color: _kIconBg,
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.ondemand_video_rounded,
+                            color: _kBlue,
+                            size: 30,
+                          ),
+                        )
+                        : Image.network(
+                          meditation.thumbnailUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder:
+                              (_, __, ___) => Container(
+                                color: _kIconBg,
+                                alignment: Alignment.center,
+                                child: const Icon(
+                                  Icons.ondemand_video_rounded,
+                                  color: _kBlue,
+                                  size: 30,
+                                ),
+                              ),
+                        ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(11, 9, 11, 9),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      meditation.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: _kNavy,
+                        height: 1.25,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      meditation.durationLabel,
+                      style: const TextStyle(fontSize: 11.5, color: _kSubtitle),
+                    ),
+                    const Spacer(),
+                    Row(
+                      children: [
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: const BoxDecoration(
+                            color: _kIconBg,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.play_arrow_rounded,
+                            color: _kBlue,
+                            size: 17,
+                          ),
+                        ),
+                        const SizedBox(width: 7),
+                        const Expanded(
+                          child: Text(
+                            'Watch',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: _kSubtitle,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MeditationSuggestionStatus extends StatelessWidget {
+  final String title;
+  final IconData icon;
+
+  const _MeditationSuggestionStatus({required this.title, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        color: _kStatBg,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: _kBlue, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: _kSubtitle,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CircleBtn extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
