@@ -53,7 +53,9 @@ class _AnoChatScreenState extends State<AnoChatScreen> {
   String? _selectedCategory;
   late Stream<List<AnoPost>> _postsStream;
   Map<String, String> _myReactions = {};
-  // postId → {reactionType → countDelta} — cleared once Firestore stream confirms
+  // postId -> reaction type, or null when an optimistic un-react is pending.
+  final Map<String, String?> _pendingReactions = {};
+  // postId -> expected visible counts, cleared once the post stream confirms.
   final Map<String, Map<String, int>> _frozenCounts = {};
   StreamSubscription<Map<String, String>>? _reactionSub;
 
@@ -67,9 +69,7 @@ class _AnoChatScreenState extends State<AnoChatScreen> {
     _postsStream = _service.postsStream();
     _reactionSub = _service.myReactionsStream().listen((map) {
       if (mounted) {
-        setState(() {
-          _myReactions = map;
-        });
+        setState(() => _syncReactionSnapshot(map));
       }
     });
     _loadIdentity();
@@ -114,17 +114,79 @@ class _AnoChatScreenState extends State<AnoChatScreen> {
     });
   }
 
+  void _syncReactionSnapshot(Map<String, String> serverReactions) {
+    final pending = Map<String, String?>.from(_pendingReactions);
+    for (final entry in _pendingReactions.entries) {
+      final confirmed =
+          entry.value == null
+              ? !serverReactions.containsKey(entry.key)
+              : serverReactions[entry.key] == entry.value;
+      if (confirmed) pending.remove(entry.key);
+    }
+
+    final effective = Map<String, String>.from(serverReactions);
+    for (final entry in pending.entries) {
+      final optimisticType = entry.value;
+      if (optimisticType == null) {
+        effective.remove(entry.key);
+      } else {
+        effective[entry.key] = optimisticType;
+      }
+    }
+
+    _pendingReactions
+      ..clear()
+      ..addAll(pending);
+    _myReactions = effective;
+  }
+
+  Map<String, int> _countsForPost(AnoPost post) => {
+    'support': post.supportCount,
+    'relate': post.relateCount,
+    'encouragement': post.encouragementCount,
+  };
+
+  bool _sameCounts(Map<String, int> a, Map<String, int> b) =>
+      a['support'] == b['support'] &&
+      a['relate'] == b['relate'] &&
+      a['encouragement'] == b['encouragement'];
+
+  void _scheduleConfirmedCountCleanup(List<AnoPost> posts) {
+    final confirmedCounts = <String, Map<String, int>>{};
+    for (final post in posts) {
+      final frozen = _frozenCounts[post.id];
+      if (frozen != null && _sameCounts(frozen, _countsForPost(post))) {
+        confirmedCounts[post.id] = Map<String, int>.from(frozen);
+      }
+    }
+    if (confirmedCounts.isEmpty) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final confirmedIds =
+          confirmedCounts.entries
+              .where((entry) {
+                final current = _frozenCounts[entry.key];
+                return current != null && _sameCounts(current, entry.value);
+              })
+              .map((entry) => entry.key)
+              .toList();
+      if (confirmedIds.isEmpty) return;
+      setState(() {
+        for (final postId in confirmedIds) {
+          _frozenCounts.remove(postId);
+        }
+      });
+    });
+  }
+
   Future<void> _handleReaction(AnoPost post, String type) async {
     final postId = post.id;
     final prevReaction = _myReactions[postId];
     final isSameType = prevReaction == type;
 
-    final baseCounts = _frozenCounts[postId] ?? {
-      'support': post.supportCount,
-      'relate': post.relateCount,
-      'encouragement': post.encouragementCount,
-    };
-    
+    final baseCounts = _frozenCounts[postId] ?? _countsForPost(post);
+
     final newReactionMap = Map<String, int>.from(baseCounts);
     if (prevReaction != null) {
       newReactionMap[prevReaction] = (newReactionMap[prevReaction] ?? 1) - 1;
@@ -138,6 +200,7 @@ class _AnoChatScreenState extends State<AnoChatScreen> {
       for (final e in _frozenCounts.entries)
         e.key: Map<String, int>.from(e.value),
     };
+    final prevPending = Map<String, String?>.from(_pendingReactions);
 
     setState(() {
       if (isSameType) {
@@ -145,13 +208,8 @@ class _AnoChatScreenState extends State<AnoChatScreen> {
       } else {
         _myReactions[postId] = type;
       }
+      _pendingReactions[postId] = isSameType ? null : type;
       _frozenCounts[postId] = newReactionMap;
-    });
-
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted && _frozenCounts.containsKey(postId)) {
-        setState(() => _frozenCounts.remove(postId));
-      }
     });
 
     try {
@@ -163,6 +221,9 @@ class _AnoChatScreenState extends State<AnoChatScreen> {
         _frozenCounts
           ..clear()
           ..addAll(prevFrozen);
+        _pendingReactions
+          ..clear()
+          ..addAll(prevPending);
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -318,6 +379,7 @@ class _AnoChatScreenState extends State<AnoChatScreen> {
                       onPost: _openCreateSheet,
                     );
                   }
+                  _scheduleConfirmedCountCleanup(posts);
                   return ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                     itemCount: posts.length,
@@ -327,11 +389,13 @@ class _AnoChatScreenState extends State<AnoChatScreen> {
                       return _PostCard(
                         post: post,
                         myReaction: _myReactions[post.id],
-                        currentCounts: _frozenCounts[post.id] ?? {
-                          'support': post.supportCount,
-                          'relate': post.relateCount,
-                          'encouragement': post.encouragementCount,
-                        },
+                        currentCounts:
+                            _frozenCounts[post.id] ??
+                            {
+                              'support': post.supportCount,
+                              'relate': post.relateCount,
+                              'encouragement': post.encouragementCount,
+                            },
                         isOwn: post.uid == _currentUid,
                         onReact: (type) => _handleReaction(post, type),
                         onDelete: () => _handleDelete(post.id),
@@ -426,10 +490,18 @@ class _PostCardStyle {
         return _PostCardStyle(
           backgroundColor: Colors.white,
           boxShadows: const [
-            BoxShadow(color: Color(0x12000000), blurRadius: 8, offset: Offset(0, 3)),
+            BoxShadow(
+              color: Color(0x12000000),
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
           ],
           avatarRingColor: const Color(0xFFE4EBF2),
-          levelTextStyle: const TextStyle(fontSize: 11, color: Color(0xFF6B8097), fontWeight: FontWeight.w600),
+          levelTextStyle: const TextStyle(
+            fontSize: 11,
+            color: Color(0xFF6B8097),
+            fontWeight: FontWeight.w600,
+          ),
           badgeDecoration: BoxDecoration(
             color: const Color(0xFFF0F4F8),
             borderRadius: BorderRadius.circular(6),
@@ -442,12 +514,22 @@ class _PostCardStyle {
         // Seeker (Light Blue/Cyan)
         return _PostCardStyle(
           backgroundColor: const Color(0xFFFCFEFF),
-          border: const Border.fromBorderSide(BorderSide(color: Color(0x3300BCD4), width: 1.0)),
+          border: const Border.fromBorderSide(
+            BorderSide(color: Color(0x3300BCD4), width: 1.0),
+          ),
           boxShadows: const [
-            BoxShadow(color: Color(0x1000BCD4), blurRadius: 8, offset: Offset(0, 3)),
+            BoxShadow(
+              color: Color(0x1000BCD4),
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
           ],
           avatarRingColor: const Color(0xFF00BCD4),
-          levelTextStyle: const TextStyle(fontSize: 11, color: Color(0xFF008BA3), fontWeight: FontWeight.w600),
+          levelTextStyle: const TextStyle(
+            fontSize: 11,
+            color: Color(0xFF008BA3),
+            fontWeight: FontWeight.w600,
+          ),
           badgeDecoration: BoxDecoration(
             color: const Color(0xFFE0F7FA),
             borderRadius: BorderRadius.circular(6),
@@ -460,12 +542,22 @@ class _PostCardStyle {
         // Blooming Soul (Green)
         return _PostCardStyle(
           backgroundColor: const Color(0xFFFAFFFB),
-          border: const Border.fromBorderSide(BorderSide(color: Color(0x444CAF50), width: 1.0)),
+          border: const Border.fromBorderSide(
+            BorderSide(color: Color(0x444CAF50), width: 1.0),
+          ),
           boxShadows: const [
-            BoxShadow(color: Color(0x154CAF50), blurRadius: 8, offset: Offset(0, 3)),
+            BoxShadow(
+              color: Color(0x154CAF50),
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
           ],
           avatarRingColor: const Color(0xFF4CAF50),
-          levelTextStyle: const TextStyle(fontSize: 11, color: Color(0xFF2E7D32), fontWeight: FontWeight.w600),
+          levelTextStyle: const TextStyle(
+            fontSize: 11,
+            color: Color(0xFF2E7D32),
+            fontWeight: FontWeight.w600,
+          ),
           badgeDecoration: BoxDecoration(
             color: const Color(0xFFE8F5E9),
             borderRadius: BorderRadius.circular(6),
@@ -478,12 +570,22 @@ class _PostCardStyle {
         // Warrior (Orange/Red)
         return _PostCardStyle(
           backgroundColor: const Color(0xFFFFFDFC),
-          border: const Border.fromBorderSide(BorderSide(color: Color(0x55FF9800), width: 1.2)),
+          border: const Border.fromBorderSide(
+            BorderSide(color: Color(0x55FF9800), width: 1.2),
+          ),
           boxShadows: const [
-            BoxShadow(color: Color(0x18FF9800), blurRadius: 10, offset: Offset(0, 4)),
+            BoxShadow(
+              color: Color(0x18FF9800),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
           ],
           avatarRingColor: const Color(0xFFFF9800),
-          levelTextStyle: const TextStyle(fontSize: 11, color: Color(0xFFEF6C00), fontWeight: FontWeight.w700),
+          levelTextStyle: const TextStyle(
+            fontSize: 11,
+            color: Color(0xFFEF6C00),
+            fontWeight: FontWeight.w700,
+          ),
           badgeDecoration: BoxDecoration(
             color: const Color(0xFFFFF3E0),
             borderRadius: BorderRadius.circular(6),
@@ -496,12 +598,22 @@ class _PostCardStyle {
         // Guardian (Deep Blue)
         return _PostCardStyle(
           backgroundColor: const Color(0xFFFDFDFD),
-          border: const Border.fromBorderSide(BorderSide(color: Color(0x66B0C4D8), width: 1.2)),
+          border: const Border.fromBorderSide(
+            BorderSide(color: Color(0x66B0C4D8), width: 1.2),
+          ),
           boxShadows: const [
-            BoxShadow(color: Color(0x183788E5), blurRadius: 10, offset: Offset(0, 4)),
+            BoxShadow(
+              color: Color(0x183788E5),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
           ],
           avatarRingColor: const Color(0xFF3788E5),
-          levelTextStyle: const TextStyle(fontSize: 11, color: Color(0xFF1E63B3), fontWeight: FontWeight.w700),
+          levelTextStyle: const TextStyle(
+            fontSize: 11,
+            color: Color(0xFF1E63B3),
+            fontWeight: FontWeight.w700,
+          ),
           badgeDecoration: BoxDecoration(
             color: const Color(0xFFE6F0FA),
             borderRadius: BorderRadius.circular(6),
@@ -514,18 +626,35 @@ class _PostCardStyle {
         // Champion (Purple/Indigo)
         return _PostCardStyle(
           backgroundColor: const Color(0xFFFBFCFF),
-          border: const Border.fromBorderSide(BorderSide(color: Color(0xFF90CAFF), width: 1.5)),
+          border: const Border.fromBorderSide(
+            BorderSide(color: Color(0xFF90CAFF), width: 1.5),
+          ),
           boxShadows: const [
-            BoxShadow(color: Color(0x2890CAFF), blurRadius: 16, offset: Offset(0, 6)),
+            BoxShadow(
+              color: Color(0x2890CAFF),
+              blurRadius: 16,
+              offset: Offset(0, 6),
+            ),
           ],
           avatarRingColor: const Color(0xFF6863F9),
-          levelTextStyle: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w800, letterSpacing: 0.3),
+          levelTextStyle: const TextStyle(
+            fontSize: 11,
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.3,
+          ),
           badgeDecoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xFF8F8BFF), Color(0xFF6863F9)]),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF8F8BFF), Color(0xFF6863F9)],
+            ),
             borderRadius: BorderRadius.circular(6),
             boxShadow: const [
-              BoxShadow(color: Color(0x406863F9), blurRadius: 4, offset: Offset(0, 2)),
-            ]
+              BoxShadow(
+                color: Color(0x406863F9),
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
           badgeIcon: Icons.emoji_events,
           badgeIconColor: Colors.white,
@@ -534,19 +663,36 @@ class _PostCardStyle {
         // Master (Gold/Amber)
         return _PostCardStyle(
           backgroundColor: const Color(0xFFFAFAFF),
-          border: const Border.fromBorderSide(BorderSide(color: Color(0xFFD6C8FF), width: 1.8)),
+          border: const Border.fromBorderSide(
+            BorderSide(color: Color(0xFFD6C8FF), width: 1.8),
+          ),
           boxShadows: const [
-            BoxShadow(color: Color(0x306863F9), blurRadius: 20, offset: Offset(0, 8)),
+            BoxShadow(
+              color: Color(0x306863F9),
+              blurRadius: 20,
+              offset: Offset(0, 8),
+            ),
           ],
           avatarRingColor: const Color(0xFFFFA000),
-          levelTextStyle: const TextStyle(fontSize: 11, color: Color(0xFF5A3A00), fontWeight: FontWeight.w900, letterSpacing: 0.3),
+          levelTextStyle: const TextStyle(
+            fontSize: 11,
+            color: Color(0xFF5A3A00),
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.3,
+          ),
           badgeDecoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xFFFFD54F), Color(0xFFFFA000)]),
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFFD54F), Color(0xFFFFA000)],
+            ),
             borderRadius: BorderRadius.circular(6),
             border: Border.all(color: const Color(0xFFFFB300), width: 1),
             boxShadow: const [
-              BoxShadow(color: Color(0x40FFA000), blurRadius: 6, offset: Offset(0, 3)),
-            ]
+              BoxShadow(
+                color: Color(0x40FFA000),
+                blurRadius: 6,
+                offset: Offset(0, 3),
+              ),
+            ],
           ),
           badgeIcon: Icons.workspace_premium,
           badgeIconColor: const Color(0xFF5A3A00),
@@ -556,25 +702,41 @@ class _PostCardStyle {
         // Legend (Ruby/Gold/Epic)
         return _PostCardStyle(
           backgroundColor: const Color(0xFFFFF9FA),
-          border: const Border.fromBorderSide(BorderSide(color: Color(0xFFFF8A80), width: 2)),
+          border: const Border.fromBorderSide(
+            BorderSide(color: Color(0xFFFF8A80), width: 2),
+          ),
           boxShadows: const [
-            BoxShadow(color: Color(0x35E53935), blurRadius: 20, offset: Offset(0, 8)),
-            BoxShadow(color: Color(0x35FFC843), blurRadius: 10, offset: Offset(0, 0)),
+            BoxShadow(
+              color: Color(0x35E53935),
+              blurRadius: 20,
+              offset: Offset(0, 8),
+            ),
+            BoxShadow(
+              color: Color(0x35FFC843),
+              blurRadius: 10,
+              offset: Offset(0, 0),
+            ),
           ],
           avatarRingColor: const Color(0xFFE53935),
           levelTextStyle: const TextStyle(
-            fontSize: 11, 
-            color: Colors.white, 
-            fontWeight: FontWeight.w900, 
+            fontSize: 11,
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
             letterSpacing: 0.5,
           ),
           badgeDecoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xFFFF5252), Color(0xFFD32F2F)]),
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFF5252), Color(0xFFD32F2F)],
+            ),
             borderRadius: BorderRadius.circular(6),
             border: Border.all(color: const Color(0xFFB71C1C), width: 1),
             boxShadow: const [
-              BoxShadow(color: Color(0x60D32F2F), blurRadius: 6, offset: Offset(0, 3)),
-            ]
+              BoxShadow(
+                color: Color(0x60D32F2F),
+                blurRadius: 6,
+                offset: Offset(0, 3),
+              ),
+            ],
           ),
           badgeIcon: Icons.stars,
           badgeIconColor: Colors.white,
@@ -667,13 +829,20 @@ class _PostCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2.5,
+                          ),
                           decoration: style.badgeDecoration,
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               if (style.badgeIcon != null) ...[
-                                Icon(style.badgeIcon, size: 10, color: style.badgeIconColor),
+                                Icon(
+                                  style.badgeIcon,
+                                  size: 10,
+                                  color: style.badgeIconColor,
+                                ),
                                 const SizedBox(width: 4),
                               ],
                               Text(
@@ -776,7 +945,8 @@ class _PostCard extends StatelessWidget {
               _ReactionButton(
                 emoji: '🌱',
                 label: 'Encourage',
-                count: currentCounts['encouragement'] ?? post.encouragementCount,
+                count:
+                    currentCounts['encouragement'] ?? post.encouragementCount,
                 isActive: myReaction == 'encouragement',
                 onTap: () => onReact('encouragement'),
               ),

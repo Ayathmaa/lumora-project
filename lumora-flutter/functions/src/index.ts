@@ -20,6 +20,8 @@ const FLAGGED_PHRASES = [
   "not worth living",
 ];
 
+const VALID_REACTION_TYPES = new Set(["support", "relate", "encouragement"]);
+
 export const moderateAnoChatPost = functions.firestore
   .document("anoPosts/{postId}")
   .onCreate(async (snap, context) => {
@@ -50,8 +52,11 @@ export const aggregateAnoChatReactions = functions.firestore
     const beforeData = change.before.data();
     const afterData = change.after.data();
 
-    const beforeType = beforeData ? beforeData.type : null;
-    const afterType = afterData ? afterData.type : null;
+    // Callable reaction writes update the counter in the same transaction.
+    if (afterData && afterData.counterApplied === true) return null;
+
+    const beforeType = typeof beforeData?.type === "string" ? beforeData.type : null;
+    const afterType = typeof afterData?.type === "string" ? afterData.type : null;
 
     // No change in reaction
     if (beforeType === afterType) return null;
@@ -78,6 +83,82 @@ export const aggregateAnoChatReactions = functions.firestore
       return null;
     });
   });
+
+export const toggleAnoChatReaction = functions.https.onCall(
+  async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "You must be signed in to react.",
+      );
+    }
+
+    const uid = context.auth.uid;
+    const postId = typeof data?.postId === "string" ? data.postId.trim() : "";
+    const reactionType =
+      typeof data?.reactionType === "string" ? data.reactionType : "";
+
+    if (!postId || !VALID_REACTION_TYPES.has(reactionType)) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Invalid reaction request.",
+      );
+    }
+
+    const postRef = db.collection("anoPosts").doc(postId);
+    const reactionRef = db
+      .collection("users")
+      .doc(uid)
+      .collection("anoReactions")
+      .doc(postId);
+
+    let nextReaction: string | null = reactionType;
+
+    await db.runTransaction(async (tx) => {
+      const [postSnap, reactionSnap] = await Promise.all([
+        tx.get(postRef),
+        tx.get(reactionRef),
+      ]);
+
+      if (!postSnap.exists) {
+        throw new functions.https.HttpsError("not-found", "Post not found.");
+      }
+
+      const reactionData = reactionSnap.data();
+      const currentType =
+        typeof reactionData?.type === "string" ? reactionData.type : null;
+      const updates: Record<string, admin.firestore.FieldValue> = {};
+
+      if (currentType) {
+        updates[`reactionCounts.${currentType}`] =
+          admin.firestore.FieldValue.increment(-1);
+      }
+
+      if (currentType === reactionType) {
+        nextReaction = null;
+        tx.set(reactionRef, {
+          counterApplied: true,
+          removed: true,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } else {
+        updates[`reactionCounts.${reactionType}`] =
+          admin.firestore.FieldValue.increment(1);
+        tx.set(reactionRef, {
+          type: reactionType,
+          counterApplied: true,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+
+      if (Object.keys(updates).length > 0) {
+        tx.update(postRef, updates);
+      }
+    });
+
+    return { reactionType: nextReaction };
+  },
+);
 
 // ── 3. Gamification System (XP & Streaks) & Timeline Generation ───────────
 

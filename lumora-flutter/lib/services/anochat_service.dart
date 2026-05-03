@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'auth_service.dart';
 import 'gamification_utils.dart';
 
@@ -42,6 +43,7 @@ class AnoPost {
 
 class AnoChatService {
   final _db = FirebaseFirestore.instance;
+  final _functions = FirebaseFunctions.instance;
   final _auth = AuthService();
 
   static const int postMaxLength = 400;
@@ -126,7 +128,13 @@ class AnoChatService {
     // Fetch user XP to figure out level
     int userXp = 0;
     try {
-      final doc = await _db.collection('users').doc(uid).collection('user_stats').doc('gamification').get();
+      final doc =
+          await _db
+              .collection('users')
+              .doc(uid)
+              .collection('user_stats')
+              .doc('gamification')
+              .get();
       if (doc.exists) {
         userXp = doc.data()?['xp'] as int? ?? 0;
       }
@@ -162,6 +170,29 @@ class AnoChatService {
   /// Toggles a reaction. Calling with the same type the user already selected
   /// removes it (un-react). Calling with a different type swaps it.
   Future<void> toggleReaction(String postId, String reactionType) async {
+    try {
+      await _functions.httpsCallable('toggleAnoChatReaction').call({
+        'postId': postId,
+        'reactionType': reactionType,
+      });
+      return;
+    } on FirebaseFunctionsException catch (e) {
+      // Keep older deployments working until the callable function is deployed.
+      if (e.code == 'not-found' && e.message == 'Post not found.') {
+        throw Exception(e.message);
+      }
+      if (e.code != 'not-found' && e.code != 'unimplemented') {
+        throw Exception(e.message ?? e.code);
+      }
+    }
+
+    await _toggleReactionDocument(postId, reactionType);
+  }
+
+  Future<void> _toggleReactionDocument(
+    String postId,
+    String reactionType,
+  ) async {
     final uid = _uid;
     final reactionRef = _db
         .collection('users')
@@ -170,8 +201,8 @@ class AnoChatService {
         .doc(postId);
 
     final snap = await reactionRef.get();
-    if (snap.exists) {
-      final current = snap.data()!['type'] as String;
+    final current = snap.data()?['type'] as String?;
+    if (current != null) {
       if (current == reactionType) {
         // Same type — remove reaction.
         await reactionRef.delete();

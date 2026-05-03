@@ -434,11 +434,6 @@ class _BreathingExerciseScreenState extends State<BreathingExerciseScreen>
   }
 
   Color get _bgColor {
-    if (_t.isSlowDeep) {
-      return _phase.type == BreathingPhaseType.inhale
-          ? const Color(0xFFD6EAF8)
-          : const Color(0xFFEBF5FB);
-    }
     return const Color(0xFF1A3A5C);
   }
 
@@ -468,14 +463,14 @@ class _BreathingExerciseScreenState extends State<BreathingExerciseScreen>
           leading: IconButton(
             icon: Icon(
               Icons.arrow_back_rounded,
-              color: _t.isSlowDeep ? const Color(0xFF1A3A5C) : Colors.white,
+              color: Colors.white,
             ),
             onPressed: () => Navigator.of(context).maybePop(),
           ),
           title: Text(
             _t.name,
-            style: TextStyle(
-              color: _t.isSlowDeep ? const Color(0xFF1A3A5C) : Colors.white,
+            style: const TextStyle(
+              color: Colors.white,
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
@@ -486,11 +481,8 @@ class _BreathingExerciseScreenState extends State<BreathingExerciseScreen>
               child: Center(
                 child: Text(
                   _roundLabel,
-                  style: TextStyle(
-                    color:
-                        _t.isSlowDeep
-                            ? const Color(0xFF4A6FA5)
-                            : Colors.white60,
+                  style: const TextStyle(
+                    color: Colors.white60,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -595,10 +587,7 @@ class _BreathingExerciseScreenState extends State<BreathingExerciseScreen>
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
-                      color:
-                          _t.isSlowDeep
-                              ? const Color(0xFF4A6FA5)
-                              : Colors.white70,
+                      color: Colors.white70,
                       height: 1.5,
                     ),
                   ),

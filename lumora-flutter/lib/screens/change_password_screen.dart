@@ -28,9 +28,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   Future<void> _changePassword() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() => _isSaving = true);
-    
+
     try {
       await _auth.changePassword(
         currentPassword: _oldPassCtrl.text,
@@ -43,9 +43,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -55,97 +55,236 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _kBg,
-      appBar: AppBar(
-        title: const Text('Change Password', style: TextStyle(color: _kNavy, fontWeight: FontWeight.bold)),
-        backgroundColor: _kBg,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: _kNavy),
-      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: _kCardBg,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: const [BoxShadow(color: Color(0x10000000), blurRadius: 10, offset: Offset(0, 4))],
-            ),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Current Password', style: TextStyle(color: _kNavy, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _oldPassCtrl,
-                    obscureText: _obscureOld,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: _kBg.withValues(alpha: 0.3),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscureOld ? Icons.visibility_off : Icons.visibility, color: _kSubtitle),
-                        onPressed: () => setState(() => _obscureOld = !_obscureOld),
-                      ),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+          child: Column(
+            children: [
+              const _ProfileSubpageHeader(
+                title: 'Change Password',
+                subtitle: 'Keep your account secure',
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: _kCardBg,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x10000000),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
                     ),
-                    validator: (v) => v!.isEmpty ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 20),
-                  const Text('New Password', style: TextStyle(color: _kNavy, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _newPassCtrl,
-                    obscureText: _obscureNew,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: _kBg.withValues(alpha: 0.3),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscureNew ? Icons.visibility_off : Icons.visibility, color: _kSubtitle),
-                        onPressed: () => setState(() => _obscureNew = !_obscureNew),
+                  ],
+                ),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Current Password',
+                        style: TextStyle(
+                          color: _kNavy,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    validator: (v) => v!.length < 6 ? 'Must be at least 6 characters' : null,
-                  ),
-                  const SizedBox(height: 20),
-                  const Text('Re-Type New Password', style: TextStyle(color: _kNavy, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _newPassReCtrl,
-                    obscureText: _obscureNewRe,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: _kBg.withValues(alpha: 0.3),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscureNewRe ? Icons.visibility_off : Icons.visibility, color: _kSubtitle),
-                        onPressed: () => setState(() => _obscureNewRe = !_obscureNewRe),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _oldPassCtrl,
+                        obscureText: _obscureOld,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: _kBg.withValues(alpha: 0.3),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureOld
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: _kSubtitle,
+                            ),
+                            onPressed:
+                                () =>
+                                    setState(() => _obscureOld = !_obscureOld),
+                          ),
+                        ),
+                        validator: (v) => v!.isEmpty ? 'Required' : null,
                       ),
-                    ),
-                    validator: (v) => v != _newPassCtrl.text ? 'Passwords do not match' : null,
-                  ),
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: _isSaving ? null : _changePassword,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _kBlue,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'New Password',
+                        style: TextStyle(
+                          color: _kNavy,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      child: _isSaving
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text('Change Password', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
-                    ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _newPassCtrl,
+                        obscureText: _obscureNew,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: _kBg.withValues(alpha: 0.3),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureNew
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: _kSubtitle,
+                            ),
+                            onPressed:
+                                () =>
+                                    setState(() => _obscureNew = !_obscureNew),
+                          ),
+                        ),
+                        validator:
+                            (v) =>
+                                v!.length < 6
+                                    ? 'Must be at least 6 characters'
+                                    : null,
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Re-Type New Password',
+                        style: TextStyle(
+                          color: _kNavy,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _newPassReCtrl,
+                        obscureText: _obscureNewRe,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: _kBg.withValues(alpha: 0.3),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureNewRe
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: _kSubtitle,
+                            ),
+                            onPressed:
+                                () => setState(
+                                  () => _obscureNewRe = !_obscureNewRe,
+                                ),
+                          ),
+                        ),
+                        validator:
+                            (v) =>
+                                v != _newPassCtrl.text
+                                    ? 'Passwords do not match'
+                                    : null,
+                      ),
+                      const SizedBox(height: 32),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: _isSaving ? null : _changePassword,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _kBlue,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child:
+                              _isSaving
+                                  ? const CircularProgressIndicator(
+                                    color: Colors.white,
+                                  )
+                                  : const Text(
+                                    'Change Password',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileSubpageHeader extends StatelessWidget {
+  final String title;
+  final String subtitle;
+
+  const _ProfileSubpageHeader({required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      decoration: BoxDecoration(
+        color: _kBlue,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.white,
+                size: 16,
               ),
             ),
           ),
-        ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(color: Colors.white70, fontSize: 11.5),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
