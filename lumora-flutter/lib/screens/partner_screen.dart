@@ -214,6 +214,7 @@ class _PartnerScreenState extends State<PartnerScreen> {
             onInvitesTap: (invites) => _showInvitesDialog(context, invites),
             partnerService: _partnerService,
           ),
+          _buildRemovalRequestsView(),
           const SizedBox(height: 28),
           _SectionCard(
             child: Column(
@@ -373,6 +374,156 @@ class _PartnerScreenState extends State<PartnerScreen> {
         },
       ),
     ];
+  }
+
+  Widget _buildRemovalRequestsView() {
+    return StreamBuilder<List<PartnerRemovalRequest>>(
+      stream: _partnerService.streamPendingRemovalRequests(),
+      builder: (context, snapshot) {
+        final requests = snapshot.data ?? const <PartnerRemovalRequest>[];
+        if (requests.isEmpty) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Column(
+            children:
+                requests.map((request) {
+                  final requesterName =
+                      request.requester?.displayName.trim().isNotEmpty == true
+                          ? request.requester!.displayName.trim()
+                          : '@${request.requester?.username ?? 'your partner'}';
+
+                  return Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: _kCardBg,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0xFFFFCDD2)),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: _kShadow,
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFEBEE),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.person_remove_rounded,
+                                color: Colors.redAccent,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Text(
+                                'Partner removal request',
+                                style: TextStyle(
+                                  color: _kNavy,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          '$requesterName wants to disconnect this partner relationship. If you accept, both accounts will stop sharing progress.',
+                          style: const TextStyle(
+                            color: _kSubtitle,
+                            fontSize: 13,
+                            height: 1.45,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed:
+                                    () => _handleRemovalRequestAction(
+                                      request.id,
+                                      accept: false,
+                                    ),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: _kNavy,
+                                  side: const BorderSide(color: _kBorder),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Text('Keep Partner'),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed:
+                                    () => _handleRemovalRequestAction(
+                                      request.id,
+                                      accept: true,
+                                    ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.redAccent,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Text('Accept Removal'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleRemovalRequestAction(
+    String requestId, {
+    required bool accept,
+  }) async {
+    try {
+      if (accept) {
+        await _partnerService.acceptPartnerRemoval(requestId);
+      } else {
+        await _partnerService.declinePartnerRemoval(requestId);
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            accept ? 'Partner removed.' : 'Removal request declined.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not update removal request: $e')),
+      );
+    }
   }
 
   void _showSearchDialog(BuildContext context) {
@@ -752,33 +903,91 @@ class _PartnerHeader extends StatelessWidget {
     );
   }
 
-  void _confirmRemovePartner(BuildContext context, PartnerUser partner) {
+  Future<void> _confirmRemovePartner(
+    BuildContext context,
+    PartnerUser partner,
+  ) async {
+    final partnerName =
+        partner.displayName.trim().isNotEmpty
+            ? partner.displayName.trim()
+            : '@${partner.username}';
+
     showDialog(
       context: context,
       builder:
-          (ctx) => AlertDialog(
-            title: const Text('Remove Partner?'),
-            content: Text(
-              'Are you sure you want to stop sharing your progress with ${partner.displayName}?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                onPressed: () {
-                  partnerService.removePartner();
-                  Navigator.pop(ctx);
-                },
-                child: const Text(
-                  'Remove',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
+          (ctx) => _RemovePartnerDialog(
+            partnerName: partnerName,
+            onRemove: () => partnerService.requestPartnerRemoval(),
           ),
+    );
+  }
+}
+
+class _RemovePartnerDialog extends StatefulWidget {
+  final String partnerName;
+  final Future<void> Function() onRemove;
+
+  const _RemovePartnerDialog({
+    required this.partnerName,
+    required this.onRemove,
+  });
+
+  @override
+  State<_RemovePartnerDialog> createState() => _RemovePartnerDialogState();
+}
+
+class _RemovePartnerDialogState extends State<_RemovePartnerDialog> {
+  bool _isRemoving = false;
+
+  Future<void> _remove() async {
+    setState(() => _isRemoving = true);
+    try {
+      await widget.onRemove();
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Removal request sent.')));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isRemoving = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not send request: $e')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Request Partner Removal?'),
+      content: Text(
+        'This will send ${widget.partnerName} a removal request. You will stay connected until they accept it.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isRemoving ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          onPressed: _isRemoving ? null : _remove,
+          child:
+              _isRemoving
+                  ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                  : const Text(
+                    'Send Request',
+                    style: TextStyle(color: Colors.white),
+                  ),
+        ),
+      ],
     );
   }
 }

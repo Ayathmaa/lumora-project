@@ -171,6 +171,14 @@ service cloud.firestore {
       allow create, update, delete: if false; // strictly managed by Cloud Functions
     }
 
+    // ── partner_removal_requests ───────────────────────────────────────────
+    match /partner_removal_requests/{requestId} {
+      allow read: if isSignedIn()
+                  && (resource.data.requesterId == request.auth.uid
+                      || resource.data.receiverId == request.auth.uid);
+      allow create, update, delete: if false; // strictly managed by Cloud Functions
+    }
+
     // ── anoPosts ───────────────────────────────────────────────────────────
     match /anoPosts/{postId} {
       // Any signed-in user can read posts.

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/meditation.dart';
 import '../services/erp_timer_service.dart';
 import '../services/meditation_catalog_service.dart';
-import 'meditation_player_screen.dart';
+import 'erp_video_player_screen.dart';
 
 const _kBg = Color(0xFFD0E4F4);
 const _kNavy = Color(0xFF1A3A5C);
@@ -31,6 +31,7 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
   bool _sessionCompleted = false;
   bool _sessionSaved = false;
   Timer? _timer;
+  Meditation? _selectedMeditation;
 
   // Anxiety levels
   double _preAnxiety = 5;
@@ -69,25 +70,54 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
     setState(() {
       _selectedMinutes = minutes;
       _secondsRemaining = minutes * 60;
+      _selectedMeditation = null;
+      _sessionCompleted = false;
+      _sessionSaved = false;
     });
   }
 
-  void _start() {
+  Future<void> _start() async {
+    final meditation = _selectedMeditation;
+    if (meditation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Select a $_selectedMinutes min video first.'),
+          backgroundColor: _kBlue,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isRunning = true;
       _isPaused = false;
+      _sessionCompleted = false;
+      _sessionSaved = false;
+      _secondsRemaining = _selectedMinutes * 60;
     });
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_secondsRemaining <= 0) {
-        _timer?.cancel();
-        setState(() {
-          _isRunning = false;
-          _isPaused = false;
-          _sessionCompleted = true;
-        });
-        return;
-      }
-      setState(() => _secondsRemaining--);
+
+    final completed = await Navigator.of(context).push<bool>(
+      PageRouteBuilder(
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        pageBuilder:
+            (_, __, ___) => ErpVideoPlayerScreen(
+              meditation: meditation,
+              timerDuration: Duration(minutes: _selectedMinutes),
+            ),
+      ),
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _isRunning = false;
+      _isPaused = false;
+      _sessionCompleted = completed == true;
+      _secondsRemaining = completed == true ? 0 : _selectedMinutes * 60;
     });
   }
 
@@ -127,65 +157,18 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
   Future<void> _saveSession() async {
     if (_sessionSaved) return; // prevent double-submit
 
-    // If the timer hasn't finished, ask for confirmation
     if (!_sessionCompleted) {
-      final proceed = await showDialog<bool>(
-        context: context,
-        builder:
-            (ctx) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: const Text(
-                'Session not finished',
-                style: TextStyle(
-                  color: _kNavy,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                ),
-              ),
-              content: const Text(
-                "You haven't finished the session timer. If you proceed now the session will be saved as incomplete. Would you like to proceed?",
-                style: TextStyle(color: _kSubtitle, fontSize: 13, height: 1.5),
-              ),
-              actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              actions: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: _kNavy,
-                          side: const BorderSide(color: Color(0xFFCCCCCC)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () => Navigator.of(ctx).pop(false),
-                        child: const Text('No'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _kBlue,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () => Navigator.of(ctx).pop(true),
-                        child: const Text('Yes'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Complete the full ERP timer before saving.'),
+          backgroundColor: _kBlue,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       );
-      if (proceed != true) return;
+      return;
     }
 
     try {
@@ -583,7 +566,7 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
                     _isRunning && !_isPaused
                         ? _pause
                         : (_isPaused ? _resume : _start),
-                bg: _kBlue,
+                bg: _selectedMeditation == null ? Colors.grey.shade300 : _kBlue,
                 fg: Colors.white,
                 size: 64,
                 iconSize: 30,
@@ -647,7 +630,7 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Optional videos matched to your ERP timer. The session is completed by finishing the timer, not by watching a video.',
+            'Choose a video that matches your ERP timer before starting.',
             style: TextStyle(fontSize: 12, color: _kSubtitle, height: 1.4),
           ),
           const SizedBox(height: 14),
@@ -701,19 +684,13 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
                     separatorBuilder: (_, __) => const SizedBox(width: 12),
                     itemBuilder: (context, i) {
                       final meditation = suggestions[i];
+                      final selected = _selectedMeditation?.id == meditation.id;
                       return _ErpMeditationCard(
                         meditation: meditation,
+                        selected: selected,
                         onTap: () {
-                          Navigator.of(context).push(
-                            PageRouteBuilder(
-                              transitionDuration: Duration.zero,
-                              reverseTransitionDuration: Duration.zero,
-                              pageBuilder:
-                                  (_, __, ___) => MeditationPlayerScreen(
-                                    meditation: meditation,
-                                  ),
-                            ),
-                          );
+                          if (_isRunning) return;
+                          setState(() => _selectedMeditation = meditation);
                         },
                       );
                     },
@@ -921,21 +898,24 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
 
   // ── Save button ───────────────────────────────────────────────────────────
   Widget _buildSaveButton() {
+    final canSave = _sessionCompleted && !_sessionSaved;
     return SizedBox(
       width: double.infinity,
       height: 52,
       child: ElevatedButton(
-        onPressed: _sessionSaved ? null : _saveSession,
+        onPressed: canSave ? _saveSession : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _sessionSaved ? Colors.grey.shade300 : _kBlue,
-          foregroundColor: _sessionSaved ? Colors.grey.shade500 : Colors.white,
+          backgroundColor: canSave ? _kBlue : Colors.grey.shade300,
+          foregroundColor: canSave ? Colors.white : Colors.grey.shade500,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
         ),
         child: Text(
-          _sessionSaved ? 'Session Saved' : 'Save Session',
+          _sessionSaved
+              ? 'Session Saved'
+              : (_sessionCompleted ? 'Save Session' : 'Complete Timer to Save'),
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
@@ -946,9 +926,14 @@ class _ErpTimerScreenState extends State<ErpTimerScreen> {
 // ── Helper widgets ────────────────────────────────────────────────────────
 class _ErpMeditationCard extends StatelessWidget {
   final Meditation meditation;
+  final bool selected;
   final VoidCallback onTap;
 
-  const _ErpMeditationCard({required this.meditation, required this.onTap});
+  const _ErpMeditationCard({
+    required this.meditation,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -959,6 +944,10 @@ class _ErpMeditationCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: _kStatBg,
           borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: selected ? _kBlue : Colors.transparent,
+            width: 2,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1035,10 +1024,10 @@ class _ErpMeditationCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 7),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Watch',
-                            style: TextStyle(
+                            selected ? 'Selected' : 'Select',
+                            style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               color: _kSubtitle,

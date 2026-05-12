@@ -6,6 +6,7 @@ import 'package:lumora_flutter/screens/login_screen.dart';
 import 'package:lumora_flutter/screens/upgrade_account_screen.dart';
 import 'package:lumora_flutter/screens/edit_profile_screen.dart';
 import 'package:lumora_flutter/screens/change_password_screen.dart';
+import 'package:lumora_flutter/screens/privacy_policy_screen.dart';
 
 const _kBg = Color(0xFFC8DCF0);
 const _kNavy = Color(0xFF1A3A5C);
@@ -453,7 +454,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _SettingRow(
                     icon: Icons.privacy_tip_outlined,
                     label: 'Privacy Policy',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PrivacyPolicyScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

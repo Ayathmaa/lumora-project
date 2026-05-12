@@ -768,3 +768,128 @@ export const removePartner = functions.https.onCall(async (data, context) => {
     return { success: true };
   });
 });
+
+export const requestPartnerRemoval = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "User must be authenticated.");
+  const uid = context.auth.uid;
+
+  const userDoc = await db.collection("users").doc(uid).get();
+  if (!userDoc.exists) throw new functions.https.HttpsError("not-found", "User not found.");
+
+  const partnerId = userDoc.data()?.partnerId;
+  if (!partnerId) {
+    throw new functions.https.HttpsError("failed-precondition", "You do not have a partner to remove.");
+  }
+
+  const partnerDoc = await db.collection("users").doc(partnerId).get();
+  if (!partnerDoc.exists || partnerDoc.data()?.partnerId !== uid) {
+    throw new functions.https.HttpsError("failed-precondition", "Partner relationship is not active.");
+  }
+
+  const existing = await db.collection("partner_removal_requests")
+    .where("status", "==", "pending")
+    .where("participants", "array-contains", uid)
+    .get();
+
+  const hasExistingBetweenPair = existing.docs.some((doc) => {
+    const request = doc.data();
+    return Array.isArray(request.participants)
+      && request.participants.includes(uid)
+      && request.participants.includes(partnerId);
+  });
+
+  if (hasExistingBetweenPair) {
+    throw new functions.https.HttpsError("already-exists", "A removal request is already pending.");
+  }
+
+  const requestData = {
+    requesterId: uid,
+    receiverId: partnerId,
+    participants: [uid, partnerId],
+    status: "pending",
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  const docRef = await db.collection("partner_removal_requests").add(requestData);
+  return { id: docRef.id, ...requestData };
+});
+
+export const acceptPartnerRemoval = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "User must be authenticated.");
+  const uid = context.auth.uid;
+  const requestId = data.requestId;
+
+  if (!requestId) throw new functions.https.HttpsError("invalid-argument", "Request ID is required.");
+
+  return db.runTransaction(async (tx) => {
+    const requestRef = db.collection("partner_removal_requests").doc(requestId);
+    const requestDoc = await tx.get(requestRef);
+
+    if (!requestDoc.exists) throw new functions.https.HttpsError("not-found", "Removal request not found.");
+
+    const requestData = requestDoc.data()!;
+    if (requestData.receiverId !== uid) {
+      throw new functions.https.HttpsError("permission-denied", "Only the receiving partner can accept this request.");
+    }
+    if (requestData.status !== "pending") {
+      throw new functions.https.HttpsError("failed-precondition", "Removal request is no longer pending.");
+    }
+
+    const requesterId = requestData.requesterId;
+    const requesterRef = db.collection("users").doc(requesterId);
+    const receiverRef = db.collection("users").doc(uid);
+    const requesterDoc = await tx.get(requesterRef);
+    const receiverDoc = await tx.get(receiverRef);
+
+    if (requesterDoc.exists && requesterDoc.data()?.partnerId === uid) {
+      tx.update(requesterRef, {
+        partnerId: admin.firestore.FieldValue.delete(),
+        partnerPreferences: admin.firestore.FieldValue.delete(),
+      });
+    }
+
+    if (receiverDoc.exists && receiverDoc.data()?.partnerId === requesterId) {
+      tx.update(receiverRef, {
+        partnerId: admin.firestore.FieldValue.delete(),
+        partnerPreferences: admin.firestore.FieldValue.delete(),
+      });
+    }
+
+    tx.update(requestRef, {
+      status: "accepted",
+      acceptedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return { success: true };
+  });
+});
+
+export const declinePartnerRemoval = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "User must be authenticated.");
+  const uid = context.auth.uid;
+  const requestId = data.requestId;
+
+  if (!requestId) throw new functions.https.HttpsError("invalid-argument", "Request ID is required.");
+
+  return db.runTransaction(async (tx) => {
+    const requestRef = db.collection("partner_removal_requests").doc(requestId);
+    const requestDoc = await tx.get(requestRef);
+
+    if (!requestDoc.exists) throw new functions.https.HttpsError("not-found", "Removal request not found.");
+
+    const requestData = requestDoc.data()!;
+    if (requestData.receiverId !== uid) {
+      throw new functions.https.HttpsError("permission-denied", "Only the receiving partner can decline this request.");
+    }
+    if (requestData.status !== "pending") {
+      throw new functions.https.HttpsError("failed-precondition", "Removal request is no longer pending.");
+    }
+
+    tx.update(requestRef, {
+      status: "declined",
+      declinedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return { success: true };
+  });
+});

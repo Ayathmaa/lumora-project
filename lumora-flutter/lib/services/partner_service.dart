@@ -57,6 +57,39 @@ class PartnerInvite {
   }
 }
 
+class PartnerRemovalRequest {
+  final String id;
+  final String requesterId;
+  final String receiverId;
+  final String status;
+  final DateTime? createdAt;
+  final PartnerUser? requester;
+
+  PartnerRemovalRequest({
+    required this.id,
+    required this.requesterId,
+    required this.receiverId,
+    required this.status,
+    this.createdAt,
+    this.requester,
+  });
+
+  factory PartnerRemovalRequest.fromDoc(
+    DocumentSnapshot<Map<String, dynamic>> doc, {
+    PartnerUser? requester,
+  }) {
+    final data = doc.data() ?? const <String, dynamic>{};
+    return PartnerRemovalRequest(
+      id: doc.id,
+      requesterId: data['requesterId'] as String? ?? '',
+      receiverId: data['receiverId'] as String? ?? '',
+      status: data['status'] as String? ?? 'pending',
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+      requester: requester,
+    );
+  }
+}
+
 class PartnerPreferences {
   final bool shareAnxietyRemaining;
   final bool shareDailyMood;
@@ -108,7 +141,7 @@ class PartnerService {
           .map((e) => PartnerUser.fromMap(Map<String, dynamic>.from(e)))
           .toList();
     } catch (e) {
-      throw Exception("Failed to search users: \$e");
+      throw Exception("Failed to search users: $e");
     }
   }
 
@@ -138,6 +171,35 @@ class PartnerService {
             invites.add(PartnerInvite.fromDoc(doc, sender: sender));
           }
           return invites;
+        });
+  }
+
+  Stream<List<PartnerRemovalRequest>> streamPendingRemovalRequests() {
+    return _db
+        .collection('partner_removal_requests')
+        .where('receiverId', isEqualTo: _uid)
+        .where('status', isEqualTo: 'pending')
+        .snapshots()
+        .asyncMap((snapshot) async {
+          final requests = <PartnerRemovalRequest>[];
+          for (final doc in snapshot.docs) {
+            final data = doc.data();
+            final requesterId = data['requesterId'] as String?;
+            PartnerUser? requester;
+            if (requesterId != null) {
+              final requesterDoc =
+                  await _db.collection('users').doc(requesterId).get();
+              if (requesterDoc.exists) {
+                final requesterData = requesterDoc.data()!;
+                requesterData['uid'] = requesterId;
+                requester = PartnerUser.fromMap(requesterData);
+              }
+            }
+            requests.add(
+              PartnerRemovalRequest.fromDoc(doc, requester: requester),
+            );
+          }
+          return requests;
         });
   }
 
@@ -184,7 +246,7 @@ class PartnerService {
         'partnerPreferences': prefs.toMap(),
       });
     } catch (e) {
-      throw Exception("Failed to update preferences: \$e");
+      throw Exception("Failed to update preferences: $e");
     }
   }
 
@@ -195,7 +257,7 @@ class PartnerService {
         'receiverId': receiverId,
       });
     } catch (e) {
-      throw Exception("Failed to send invite: \$e");
+      throw Exception("Failed to send invite: $e");
     }
   }
 
@@ -206,7 +268,7 @@ class PartnerService {
         'inviteId': inviteId,
       });
     } catch (e) {
-      throw Exception("Failed to accept invite: \$e");
+      throw Exception("Failed to accept invite: $e");
     }
   }
 
@@ -219,16 +281,37 @@ class PartnerService {
         await inviteDoc.reference.update({'status': 'declined'});
       }
     } catch (e) {
-      throw Exception("Failed to decline invite: \$e");
+      throw Exception("Failed to decline invite: $e");
     }
   }
 
-  /// Remove current partner via Cloud Function
-  Future<void> removePartner() async {
+  /// Requests partner removal. The partner must accept before both accounts are
+  /// disconnected.
+  Future<void> requestPartnerRemoval() async {
     try {
-      await _functions.httpsCallable('removePartner').call();
+      await _functions.httpsCallable('requestPartnerRemoval').call();
     } catch (e) {
-      throw Exception("Failed to remove partner: \$e");
+      throw Exception("Failed to request partner removal: $e");
+    }
+  }
+
+  Future<void> acceptPartnerRemoval(String requestId) async {
+    try {
+      await _functions.httpsCallable('acceptPartnerRemoval').call({
+        'requestId': requestId,
+      });
+    } catch (e) {
+      throw Exception("Failed to accept partner removal: $e");
+    }
+  }
+
+  Future<void> declinePartnerRemoval(String requestId) async {
+    try {
+      await _functions.httpsCallable('declinePartnerRemoval').call({
+        'requestId': requestId,
+      });
+    } catch (e) {
+      throw Exception("Failed to decline partner removal: $e");
     }
   }
 }
