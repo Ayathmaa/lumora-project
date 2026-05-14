@@ -464,12 +464,12 @@ class HighRiskScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'Call local emergency services (911, 999, 112)\nGo to your nearest emergency room\n',
+                      'Call local emergency services (119)\nGo to your nearest emergency room\n',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: _kNavy, height: 1.4),
                     ),
                     Text(
-                      'US: Call or text 988\nUK: 111 or 999\nAus: 111 or 000',
+                      'National Mental Health Hotline:1926\nSumithrayo:070 730 8308\n',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: _kNavy, height: 1.4),
                     ),
