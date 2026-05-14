@@ -17,10 +17,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -33,10 +30,7 @@ class DefaultFirebaseOptions {
           'you can reconfigure this by running the FlutterFire CLI again.',
         );
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -67,4 +61,25 @@ class DefaultFirebaseOptions {
         '567558823095-9obo89u1744uhlo14lec9foivoi8bu3b.apps.googleusercontent.com',
     iosBundleId: 'com.example.lumoraFlutter',
   );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyALuv-b2kqu-PSEYI8LTNCNedHecdol2e4',
+    appId: '1:567558823095:web:cf781fd02fcafe04b88132',
+    messagingSenderId: '567558823095',
+    projectId: 'lumora-3b4ec',
+    authDomain: 'lumora-3b4ec.firebaseapp.com',
+    storageBucket: 'lumora-3b4ec.firebasestorage.app',
+    measurementId: 'G-B3R9Q6YHC9',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyALuv-b2kqu-PSEYI8LTNCNedHecdol2e4',
+    appId: '1:567558823095:web:2f9eb9a59b42f80cb88132',
+    messagingSenderId: '567558823095',
+    projectId: 'lumora-3b4ec',
+    authDomain: 'lumora-3b4ec.firebaseapp.com',
+    storageBucket: 'lumora-3b4ec.firebasestorage.app',
+    measurementId: 'G-39BV56TM55',
+  );
+
 }
