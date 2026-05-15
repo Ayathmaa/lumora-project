@@ -7,6 +7,42 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:567558823095:android:b3f34722baaff135b88132",
+        "android_client_info": {
+          "package_name": "com.example.lumora"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "567558823095-7hjlpgiehbapf48egcevgidkdo5q69ri.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLuvL0wIjTg_Rhij_lyMMh-j_9xz9mcVI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "567558823095-7hjlpgiehbapf48egcevgidkdo5q69ri.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "567558823095-9obo89u1744uhlo14lec9foivoi8bu3b.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.lumoraFlutter"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:567558823095:android:6b8bb1b2678c9fd8b88132",
         "android_client_info": {
           "package_name": "com.example.lumora_flutter"
@@ -14,11 +50,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "567558823095-eff1sc01je810onsoju91gft29ho8k23.apps.googleusercontent.com",
+          "client_id": "567558823095-9m9tj13n05n94pvo2pqnoabc6oifbg38.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.lumora_flutter",
-            "certificate_hash": "379c017230c55e43d0caba97345056d35fc2f65c"
+            "certificate_hash": "3fa9e949f450ee09d90c6fff481e6afe5211d0a8"
           }
         },
         {

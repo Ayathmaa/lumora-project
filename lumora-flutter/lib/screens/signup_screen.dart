@@ -75,12 +75,22 @@ class _SignupScreenState extends State<SignupScreen> {
       _isUsernameAvailable = null;
     });
     _debounceTimer = Timer(const Duration(milliseconds: 600), () async {
-      final taken = await _authService.isUsernameTaken(value);
-      if (mounted && _usernameController.text == value) {
-        setState(() {
-          _isCheckingUsername = false;
-          _isUsernameAvailable = !taken;
-        });
+      try {
+        final taken = await _authService.isUsernameTaken(value);
+        if (mounted && _usernameController.text == value) {
+          setState(() {
+            _isCheckingUsername = false;
+            _isUsernameAvailable = !taken;
+          });
+        }
+      } catch (e) {
+        debugPrint('Username availability check failed: $e');
+        if (mounted && _usernameController.text == value) {
+          setState(() {
+            _isCheckingUsername = false;
+            _isUsernameAvailable = null;
+          });
+        }
       }
     });
   }
@@ -165,7 +175,12 @@ class _SignupScreenState extends State<SignupScreen> {
     try {
       final result = await _authService.signInWithGoogle();
       if (!mounted) return;
-      if (result.additionalUserInfo?.isNewUser == true) {
+      final needsProfileCompletion =
+          result.user == null ||
+          await _authService.needsProfileCompletion(result.user!.uid);
+      if (!mounted) return;
+      if (result.additionalUserInfo?.isNewUser == true ||
+          needsProfileCompletion) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder:

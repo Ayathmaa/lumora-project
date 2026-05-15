@@ -152,15 +152,18 @@ service cloud.firestore {
     }
 
     // ── usernames/{username} ───────────────────────────────────────────────
-    // Anyone signed in may check if a username is taken (read).
+    // Anyone may check if a specific username is taken.
+    // Listing all reserved usernames is never allowed.
     // Only a signed-in user may reserve a username, and only with their uid.
     // No updates or deletes — username reservation is permanent.
     match /usernames/{username} {
-      allow read:   if isSignedIn();
+      allow get:    if true;
+      allow list:   if false;
       allow create: if isSignedIn()
                     && request.resource.data.keys().hasOnly(['uid'])
                     && request.resource.data.uid == request.auth.uid;
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
     }
 
     // ── partner_invites ────────────────────────────────────────────────────

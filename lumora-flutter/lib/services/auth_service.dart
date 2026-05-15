@@ -3,15 +3,24 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
+  static const _webClientId =
+      '567558823095-7hjlpgiehbapf48egcevgidkdo5q69ri.apps.googleusercontent.com';
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(serverClientId: _webClientId);
 
   // Get current user
   User? get currentUser => _auth.currentUser;
 
   // Auth state changes stream
   Stream<User?> get authStateChanges => _auth.authStateChanges();
+
+  bool get hasPasswordProvider =>
+      _auth.currentUser?.providerData.any(
+        (provider) => provider.providerId == EmailAuthProvider.PROVIDER_ID,
+      ) ??
+      false;
 
   // Sign in with Google
   Future<UserCredential> signInWithGoogle() async {
@@ -84,23 +93,28 @@ class AuthService {
     required String username,
     String? ageGroup,
   }) async {
-    final batch = _firestore.batch();
-
     final userRef = _firestore.collection('users').doc(uid);
-    batch.set(userRef, {
-      'name': name,
-      'email': email,
-      'username': username.toLowerCase(),
-      'ageGroup': ageGroup ?? '',
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-
     final usernameRef = _firestore
         .collection('usernames')
         .doc(username.toLowerCase());
-    batch.set(usernameRef, {'uid': uid});
 
-    await batch.commit();
+    await _firestore.runTransaction((transaction) async {
+      final usernameDoc = await transaction.get(usernameRef);
+      if (usernameDoc.exists && usernameDoc.data()?['uid'] != uid) {
+        throw Exception("Username is already taken.");
+      }
+
+      transaction.set(userRef, {
+        'name': name,
+        'email': email,
+        'username': username.toLowerCase(),
+        'ageGroup': ageGroup ?? '',
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      if (!usernameDoc.exists) {
+        transaction.set(usernameRef, {'uid': uid});
+      }
+    });
   }
 
   // Upgrade anonymous account to email/password (links credential, keeps UID)
@@ -175,6 +189,13 @@ class AuthService {
     return doc.data()?['username'] as String?;
   }
 
+  // Google sign-in can succeed before the app profile document is created.
+  Future<bool> needsProfileCompletion(String uid) async {
+    final doc = await _firestore.collection('users').doc(uid).get();
+    final username = doc.data()?['username'] as String?;
+    return !doc.exists || username == null || username.trim().isEmpty;
+  }
+
   // Sign out
   Future<void> signOut() async {
     await Future.wait([_auth.signOut(), _googleSignIn.signOut()]);
@@ -221,32 +242,49 @@ class AuthService {
     if (user == null) throw Exception("No user signed in");
 
     final lowerUsername = username.toLowerCase();
-    final batch = _firestore.batch();
+    final userRef = _firestore.collection('users').doc(user.uid);
+    final newUsernameRef = _firestore
+        .collection('usernames')
+        .doc(lowerUsername);
 
-    // Check if username changed and is available
-    final currentUsername = await getUsername(user.uid);
-    if (currentUsername != lowerUsername) {
-      final isTaken = await isUsernameTaken(lowerUsername);
-      if (isTaken) throw Exception("Username is already taken.");
+    await _firestore.runTransaction((transaction) async {
+      final userDoc = await transaction.get(userRef);
+      final currentUsername =
+          (userDoc.data()?['username'] as String?)?.toLowerCase();
+      final usernameDoc = await transaction.get(newUsernameRef);
 
-      // Delete old username mapping
-      if (currentUsername != null) {
-        batch.delete(_firestore.collection('usernames').doc(currentUsername));
+      if (currentUsername != lowerUsername) {
+        if (usernameDoc.exists && usernameDoc.data()?['uid'] != user.uid) {
+          throw Exception("Username is already taken.");
+        }
+
+        if (currentUsername != null && currentUsername.isNotEmpty) {
+          transaction.delete(
+            _firestore.collection('usernames').doc(currentUsername),
+          );
+        }
       }
 
-      // Add new username mapping
-      batch.set(_firestore.collection('usernames').doc(lowerUsername), {
-        'uid': user.uid,
-      });
-    }
+      if (!usernameDoc.exists) {
+        transaction.set(newUsernameRef, {'uid': user.uid});
+      }
 
-    // Update user document
-    batch.update(_firestore.collection('users').doc(user.uid), {
-      'name': name,
-      'username': lowerUsername,
+      final profileData = <String, dynamic>{
+        'name': name,
+        'email': user.email ?? '',
+        'username': lowerUsername,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      if (!userDoc.exists) {
+        profileData['ageGroup'] = '';
+        profileData['createdAt'] = FieldValue.serverTimestamp();
+      }
+      if (photoURL != null) {
+        profileData['photoURL'] = photoURL;
+      }
+
+      transaction.set(userRef, profileData, SetOptions(merge: true));
     });
-
-    await batch.commit();
 
     // Update Firebase Auth profile
     await user.updateDisplayName(name);
@@ -263,15 +301,32 @@ class AuthService {
     final user = _auth.currentUser;
     if (user == null) throw Exception("No user signed in");
     if (user.email == null) throw Exception("User has no email");
+    if (!hasPasswordProvider) {
+      throw Exception(
+        "This account uses Google Sign-In. Change your password in your Google Account settings.",
+      );
+    }
 
-    // Re-authenticate
-    final cred = EmailAuthProvider.credential(
-      email: user.email!,
-      password: currentPassword,
-    );
-    await user.reauthenticateWithCredential(cred);
-
-    // Update password
-    await user.updatePassword(newPassword);
+    try {
+      // Re-authenticate before changing sensitive credentials.
+      final cred = EmailAuthProvider.credential(
+        email: user.email!,
+        password: currentPassword,
+      );
+      await user.reauthenticateWithCredential(cred);
+      await user.updatePassword(newPassword);
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'invalid-credential':
+        case 'wrong-password':
+          throw Exception("Current password is incorrect.");
+        case 'weak-password':
+          throw Exception("New password should be at least 6 characters.");
+        case 'requires-recent-login':
+          throw Exception("Please log out, log in again, then retry.");
+        default:
+          throw Exception(_handleAuthException(e));
+      }
+    }
   }
 }

@@ -75,12 +75,22 @@ class _GoogleProfileCompletionScreenState
       _isUsernameAvailable = null;
     });
     _debounceTimer = Timer(const Duration(milliseconds: 600), () async {
-      final taken = await _authService.isUsernameTaken(value);
-      if (mounted && _usernameController.text == value) {
-        setState(() {
-          _isCheckingUsername = false;
-          _isUsernameAvailable = !taken;
-        });
+      try {
+        final taken = await _authService.isUsernameTaken(value);
+        if (mounted && _usernameController.text == value) {
+          setState(() {
+            _isCheckingUsername = false;
+            _isUsernameAvailable = !taken;
+          });
+        }
+      } catch (e) {
+        debugPrint('Username availability check failed: $e');
+        if (mounted && _usernameController.text == value) {
+          setState(() {
+            _isCheckingUsername = false;
+            _isUsernameAvailable = null;
+          });
+        }
       }
     });
   }

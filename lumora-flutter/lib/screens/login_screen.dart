@@ -98,7 +98,12 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final result = await _authService.signInWithGoogle();
       if (!mounted) return;
-      if (result.additionalUserInfo?.isNewUser == true) {
+      final needsProfileCompletion =
+          result.user == null ||
+          await _authService.needsProfileCompletion(result.user!.uid);
+      if (!mounted) return;
+      if (result.additionalUserInfo?.isNewUser == true ||
+          needsProfileCompletion) {
         setState(() => _isLoading = false);
         final passed = await Navigator.push(
           context,
@@ -107,6 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 (_) => const QuestionnaireScreen(deleteAccountOnFail: true),
           ),
         );
+        if (!mounted) return;
         if (passed != true) {
           await _authService.signOut();
           return;
@@ -565,10 +571,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder:
-                                    (_) => const QuestionnaireScreen(
-                                      nextScreen: SignupScreen(),
-                                    ),
+                                builder: (_) => const SignupScreen(),
                               ),
                             ),
                         child: const Text(

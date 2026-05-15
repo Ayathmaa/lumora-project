@@ -416,18 +416,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _loadUsername(); // Refresh username
                     },
                   ),
-                  _SettingRow(
-                    icon: Icons.lock_outline_rounded,
-                    label: 'Change Password',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ChangePasswordScreen(),
-                        ),
-                      );
-                    },
-                  ),
+                  if (_authService.hasPasswordProvider)
+                    _SettingRow(
+                      icon: Icons.lock_outline_rounded,
+                      label: 'Change Password',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ChangePasswordScreen(),
+                          ),
+                        );
+                      },
+                    ),
                   _SettingRow(
                     icon: Icons.notifications_outlined,
                     label: 'Notifications',
