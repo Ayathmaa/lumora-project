@@ -2,8 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
-import 'package:lumora_flutter/screens/main_shell.dart';
-import 'package:lumora_flutter/screens/google_profile_completion_screen.dart';
 
 final _usernameRegex = RegExp(r'^[a-zA-Z0-9_]{3,20}$');
 
@@ -75,22 +73,12 @@ class _SignupScreenState extends State<SignupScreen> {
       _isUsernameAvailable = null;
     });
     _debounceTimer = Timer(const Duration(milliseconds: 600), () async {
-      try {
-        final taken = await _authService.isUsernameTaken(value);
-        if (mounted && _usernameController.text == value) {
-          setState(() {
-            _isCheckingUsername = false;
-            _isUsernameAvailable = !taken;
-          });
-        }
-      } catch (e) {
-        debugPrint('Username availability check failed: $e');
-        if (mounted && _usernameController.text == value) {
-          setState(() {
-            _isCheckingUsername = false;
-            _isUsernameAvailable = null;
-          });
-        }
+      final taken = await _authService.isUsernameTaken(value);
+      if (mounted && _usernameController.text == value) {
+        setState(() {
+          _isCheckingUsername = false;
+          _isUsernameAvailable = !taken;
+        });
       }
     });
   }
@@ -152,14 +140,6 @@ class _SignupScreenState extends State<SignupScreen> {
         username: _usernameController.text.trim(),
         ageGroup: _selectedAgeGroup,
       );
-
-      // Navigate to home screen
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const MainShell()),
-          (route) => false,
-        );
-      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -173,26 +153,9 @@ class _SignupScreenState extends State<SignupScreen> {
   Future<void> _signUpWithGoogle() async {
     setState(() => _isLoading = true);
     try {
-      final result = await _authService.signInWithGoogle();
-      if (!mounted) return;
-      final needsProfileCompletion =
-          result.user == null ||
-          await _authService.needsProfileCompletion(result.user!.uid);
-      if (!mounted) return;
-      if (result.additionalUserInfo?.isNewUser == true ||
-          needsProfileCompletion) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder:
-                (_) => GoogleProfileCompletionScreen(googleUser: result.user!),
-          ),
-          (route) => false,
-        );
-      } else {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainShell()),
-          (route) => false,
-        );
+      await _authService.signInWithGoogle();
+      if (mounted) {
+        Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {

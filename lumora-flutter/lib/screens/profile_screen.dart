@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
 import 'package:lumora_flutter/services/gamification_service.dart';
 import 'package:lumora_flutter/services/gamification_utils.dart';
-import 'package:lumora_flutter/screens/login_screen.dart';
 import 'package:lumora_flutter/screens/upgrade_account_screen.dart';
 import 'package:lumora_flutter/screens/edit_profile_screen.dart';
 import 'package:lumora_flutter/screens/change_password_screen.dart';
@@ -90,12 +89,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (confirm == true && mounted) {
       await _authService.signOut();
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
-      }
     }
   }
 
@@ -416,19 +409,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _loadUsername(); // Refresh username
                     },
                   ),
-                  if (_authService.hasPasswordProvider)
-                    _SettingRow(
-                      icon: Icons.lock_outline_rounded,
-                      label: 'Change Password',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ChangePasswordScreen(),
-                          ),
-                        );
-                      },
-                    ),
+                  _SettingRow(
+                    icon: Icons.lock_outline_rounded,
+                    label: 'Change Password',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ChangePasswordScreen(),
+                        ),
+                      );
+                    },
+                  ),
                   _SettingRow(
                     icon: Icons.notifications_outlined,
                     label: 'Notifications',

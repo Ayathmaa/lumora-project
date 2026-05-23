@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+//this service manages our user score and streak data engine
 class GamificationStats {
   final int xp;
   final int currentStreak;

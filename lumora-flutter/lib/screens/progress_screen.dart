@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:printing/printing.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:lumora_flutter/services/gamification_service.dart';
 import 'package:lumora_flutter/services/gamification_utils.dart';
 import 'package:lumora_flutter/services/progress_service.dart';
+import 'package:lumora_flutter/services/progress_report_service.dart';
 import 'package:lumora_flutter/widgets/mood_overview_chart.dart';
 
 const _kBg = Color(0xFFD0E4F4);
@@ -28,6 +31,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   List<ActivityEvent> _allEvents = [];
+  bool _isGeneratingReport = false;
 
   @override
   void initState() {
@@ -56,6 +60,42 @@ class _ProgressScreenState extends State<ProgressScreen> {
         return _LevelJourneyModal(currentXp: currentXp);
       },
     );
+  }
+
+  Future<void> _generateProgressReport() async {
+    if (_isGeneratingReport) return;
+
+    setState(() => _isGeneratingReport = true);
+    try {
+      final pdfBytes = await ProgressReportService().buildProgressReportPdf();
+      await Printing.sharePdf(
+        bytes: pdfBytes,
+        filename: 'lumora-progress-report.pdf',
+        subject: 'Lumora Progress Report',
+      );
+    } on MissingPluginException catch (error, stackTrace) {
+      debugPrint('Progress PDF sharing plugin is not registered: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Restart the app to finish enabling PDF sharing.'),
+        ),
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Progress PDF generation failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not generate the progress PDF. Try again.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isGeneratingReport = false);
+      }
+    }
   }
 
   @override
@@ -92,6 +132,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
               // ── 3. Mood Overview Stub ──────────────────────────────────────
               // We'll let MoodOverviewWidget handle its own title instead of doing it here.
               const MoodOverviewWidget(),
+              const SizedBox(height: 4),
+              _buildReportButton(),
               const SizedBox(height: 24),
 
               // ── 4. Journey Calendar ────────────────────────────────────────
@@ -234,6 +276,40 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
   List<ActivityEvent> _getEventsForDay(DateTime day) {
     return _allEvents.where((e) => isSameDay(e.date, day)).toList();
+  }
+
+  Widget _buildReportButton() {
+    return SizedBox(
+      height: 52,
+      child: ElevatedButton.icon(
+        onPressed: _isGeneratingReport ? null : _generateProgressReport,
+        icon:
+            _isGeneratingReport
+                ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+                : const Icon(Icons.picture_as_pdf_rounded, size: 20),
+        label: Text(
+          _isGeneratingReport ? 'Generating PDF...' : 'Generate Progress PDF',
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _kNavy,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: _kNavy.withValues(alpha: 0.65),
+          disabledForegroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
   }
 
   Widget _buildSelectedDayEvents() {

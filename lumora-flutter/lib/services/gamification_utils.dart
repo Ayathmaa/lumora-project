@@ -1,3 +1,5 @@
+//the level titles and badge colors inside AnoChat are processed 
+//programmatically by this GamificationUtils
 class GamificationUtils {
   static const Map<int, String> _levelsMap = {
     0: 'Novice',

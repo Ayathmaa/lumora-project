@@ -23,7 +23,8 @@ class MoodService {
             .get();
     return doc.exists;
   }
-
+  //Creates a unique ID using today's date. Check if a document with today's date already exists.used .set instead 
+  //of .add so if a user changes mind and re log it overwrites old score . not messy duplications.
   // score: 1 (worst) → 5 (best). Uses set() so re-logging the same day
   // overwrites rather than duplicating.
   Future<void> saveTodayMood({required int score}) async {

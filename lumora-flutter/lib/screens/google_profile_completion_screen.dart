@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
-import 'package:lumora_flutter/screens/main_shell.dart';
 
 // Design constants (matching app theme)
 const _kNavy = Color(0xFF1A3A5C);
@@ -75,22 +74,12 @@ class _GoogleProfileCompletionScreenState
       _isUsernameAvailable = null;
     });
     _debounceTimer = Timer(const Duration(milliseconds: 600), () async {
-      try {
-        final taken = await _authService.isUsernameTaken(value);
-        if (mounted && _usernameController.text == value) {
-          setState(() {
-            _isCheckingUsername = false;
-            _isUsernameAvailable = !taken;
-          });
-        }
-      } catch (e) {
-        debugPrint('Username availability check failed: $e');
-        if (mounted && _usernameController.text == value) {
-          setState(() {
-            _isCheckingUsername = false;
-            _isUsernameAvailable = null;
-          });
-        }
+      final taken = await _authService.isUsernameTaken(value);
+      if (mounted && _usernameController.text == value) {
+        setState(() {
+          _isCheckingUsername = false;
+          _isUsernameAvailable = !taken;
+        });
       }
     });
   }
@@ -142,12 +131,6 @@ class _GoogleProfileCompletionScreenState
         username: _usernameController.text.trim(),
         ageGroup: _selectedAgeGroup,
       );
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainShell()),
-          (route) => false,
-        );
-      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

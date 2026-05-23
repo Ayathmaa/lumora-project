@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:lumora_flutter/services/auth_service.dart';
 
 const _kNavy = Color(0xFF1A3A5C);
 const _kBackground = Color(0xFFC8DCF0);
@@ -152,7 +152,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
     if (highRiskD || highRiskAB || severeFunctioning) {
       if (widget.deleteAccountOnFail) {
         try {
-          await FirebaseAuth.instance.currentUser?.delete();
+          await AuthService().deleteReauthenticatedCurrentAccount();
         } catch (_) {}
       }
       if (!mounted) return;
@@ -187,12 +187,14 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                 )
                 : IconButton(
                   icon: const Icon(Icons.close, color: _kNavy),
-                  onPressed: () {
+                  onPressed: () async {
                     if (widget.deleteAccountOnFail) {
                       try {
-                        FirebaseAuth.instance.currentUser?.delete();
+                        await AuthService()
+                            .deleteReauthenticatedCurrentAccount();
                       } catch (_) {}
                     }
+                    if (!context.mounted) return;
                     Navigator.pop(context);
                   },
                 ),
@@ -469,7 +471,7 @@ class HighRiskScreen extends StatelessWidget {
                       style: TextStyle(color: _kNavy, height: 1.4),
                     ),
                     Text(
-                      'National Mental Health Hotline:1926\nSumithrayo:070 730 8308\n',
+                      'National Mental Health Helpline: 1926\n Sumithrayo: 070 730 8308',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: _kNavy, height: 1.4),
                     ),

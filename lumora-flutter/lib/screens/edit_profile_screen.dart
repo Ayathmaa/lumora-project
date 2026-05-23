@@ -26,8 +26,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _auth = AuthService();
 
   bool _isSaving = false;
+  bool _isDeleting = false;
   File? _imageFile;
   String? _existingPhotoUrl;
+
+  bool get _isBusy => _isSaving || _isDeleting;
 
   @override
   void initState() {
@@ -91,6 +94,140 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  Future<String?> _confirmProfileDeletion({
+    required bool passwordRequired,
+    required bool googleReauthRequired,
+  }) async {
+    final passwordCtrl = TextEditingController();
+
+    try {
+      return await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder:
+            (dialogContext) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Text(
+                'Delete Profile?',
+                style: TextStyle(fontWeight: FontWeight.w800, color: _kNavy),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'This permanently deletes your Lumora account, profile, and saved app data. This cannot be undone.',
+                    style: TextStyle(color: Color(0xFF4A6FA5), height: 1.35),
+                  ),
+                  if (googleReauthRequired) ...[
+                    const SizedBox(height: 12),
+                    const Text(
+                      'You will be asked to confirm with Google before deletion.',
+                      style: TextStyle(color: Color(0xFF4A6FA5), height: 1.35),
+                    ),
+                  ],
+                  if (passwordRequired) ...[
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: passwordCtrl,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: 'Current password',
+                        filled: true,
+                        fillColor: _kBg.withValues(alpha: 0.3),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: Color(0xFF4A6FA5),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (passwordRequired && passwordCtrl.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Enter your password to continue'),
+                        ),
+                      );
+                      return;
+                    }
+                    Navigator.pop(dialogContext, passwordCtrl.text);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Delete',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+      );
+    } finally {
+      passwordCtrl.dispose();
+    }
+  }
+
+  Future<void> _deleteProfile() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final passwordRequired = _auth.currentUserUsesPassword;
+    final googleReauthRequired =
+        !passwordRequired && _auth.currentUserUsesGoogle;
+    final password = await _confirmProfileDeletion(
+      passwordRequired: passwordRequired,
+      googleReauthRequired: googleReauthRequired,
+    );
+
+    if (password == null) return;
+    if (!mounted) return;
+
+    setState(() => _isDeleting = true);
+
+    try {
+      await _auth.deleteCurrentAccount(
+        password: passwordRequired ? password : null,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+      );
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _usernameCtrl.dispose();
+    super.dispose();
   }
 
   @override
@@ -226,7 +363,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton(
-                          onPressed: _isSaving ? null : _saveProfile,
+                          onPressed: _isBusy ? null : _saveProfile,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _kBlue,
                             foregroundColor: Colors.white,
@@ -247,6 +384,65 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
+                        ),
+                      ),
+                      const Divider(height: 40),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Delete Profile',
+                          style: TextStyle(
+                            color: _kNavy,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Permanently remove your account and saved Lumora data.',
+                          style: TextStyle(
+                            color: Color(0xFF4A6FA5),
+                            fontSize: 12,
+                            height: 1.35,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: OutlinedButton.icon(
+                          onPressed: _isBusy ? null : _deleteProfile,
+                          icon:
+                              _isDeleting
+                                  ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.redAccent,
+                                    ),
+                                  )
+                                  : const Icon(
+                                    Icons.delete_outline_rounded,
+                                    size: 20,
+                                  ),
+                          label: const Text(
+                            'Delete Profile',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.redAccent,
+                            side: const BorderSide(color: Colors.redAccent),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
                         ),
                       ),
                     ],

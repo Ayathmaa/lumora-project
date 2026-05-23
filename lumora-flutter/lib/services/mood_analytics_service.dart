@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/mood_data.dart';
+//This collects data from 3 collections from database cbt erp and mood and bring them to one place .
+//In a selected time period all average anxiety remaining and give a summary for reporting.
 
 class MoodAnalyticsService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

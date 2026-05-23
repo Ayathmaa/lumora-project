@@ -44,8 +44,6 @@ class MindfulScreen extends StatefulWidget {
 }
 
 class _MindfulScreenState extends State<MindfulScreen> {
-  int? _selectedMood;
-  final _noteCtrl = TextEditingController();
   bool _isHabitLoading = true;
   bool _isHabitSaving = false;
   bool _didPromptForHabit = false;
@@ -105,7 +103,6 @@ class _MindfulScreenState extends State<MindfulScreen> {
   @override
   void dispose() {
     _hideHabitSwitcher();
-    _noteCtrl.dispose();
     super.dispose();
   }
 
@@ -520,8 +517,6 @@ class _MindfulScreenState extends State<MindfulScreen> {
               _buildHabitTracker(),
               const SizedBox(height: 16),
               _buildMindfulGrowth(),
-              const SizedBox(height: 16),
-              _buildPostSessionMood(),
             ],
           ),
         ),
@@ -1240,81 +1235,6 @@ class _MindfulScreenState extends State<MindfulScreen> {
                 label: 'Longest Streak',
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPostSessionMood() {
-    const emojis = ['😢', '😔', '😐', '🙂', '😊'];
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: _kCardBg,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'After your session, how do you feel?',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: _kNavy,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(emojis.length, (i) {
-              final selected = _selectedMood == i;
-              return GestureDetector(
-                onTap: () => setState(() => _selectedMood = i),
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: selected ? _kBlue.withValues(alpha: 0.15) : _kStatBg,
-                    shape: BoxShape.circle,
-                    border:
-                        selected ? Border.all(color: _kBlue, width: 2) : null,
-                  ),
-                  child: Center(
-                    child: Text(
-                      emojis[i],
-                      style: const TextStyle(fontSize: 22),
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _noteCtrl,
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText: 'Add a note...',
-              hintStyle: const TextStyle(
-                color: Color(0xFFABC4D8),
-                fontSize: 14,
-              ),
-              filled: true,
-              fillColor: _kStatBg,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
-            ),
           ),
         ],
       ),

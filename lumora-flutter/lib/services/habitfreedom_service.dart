@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+//this service tracks user habits by loading them in order, creating new trackers,
+// and safely adding completed days into a list using FieldValue.arrayUnion()
 class HabitFreedomService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;

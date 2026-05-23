@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
-import 'package:lumora_flutter/screens/main_shell.dart';
 
 // Design constants
 const _kNavy = Color(0xFF1A3A5C);
@@ -67,10 +66,7 @@ class _UpgradeAccountScreenState extends State<UpgradeAccountScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainShell()),
-          (route) => false,
-        );
+        Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {

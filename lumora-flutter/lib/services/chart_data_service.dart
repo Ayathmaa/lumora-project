@@ -19,41 +19,53 @@ class ChartDataService {
         .doc(uid)
         .collection('daily_analytics')
         .snapshots()
-        .map((snapshot) {
-          List<ChartDataPoint> dailyAnxietyPoints = [];
-          List<ChartDataPoint> dailyMoodPoints = [];
+        .map(_mapSnapshotToChartData);
+  }
 
-          for (var doc in snapshot.docs) {
-            final data = doc.data();
-            final ts = data['timestamp'] as Timestamp?;
-            final remainingPercent = data['anxietyRemainingPercent'];
-            final moodScore = data['moodScore'];
+  Future<Map<String, List<ChartDataPoint>>> fetchChartData([String? userId]) {
+    final uid = userId ?? _auth.currentUser?.uid;
+    if (uid == null) {
+      return Future.value({'dailyAnxiety': [], 'dailyMood': []});
+    }
 
-            if (ts != null) {
-              final double epoch =
-                  ts.toDate().millisecondsSinceEpoch.toDouble();
+    return _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('daily_analytics')
+        .get()
+        .then(_mapSnapshotToChartData);
+  }
 
-              if (remainingPercent is num && remainingPercent > 0) {
-                dailyAnxietyPoints.add(
-                  ChartDataPoint(epoch, remainingPercent.toDouble()),
-                );
-              }
+  Map<String, List<ChartDataPoint>> _mapSnapshotToChartData(
+    QuerySnapshot<Map<String, dynamic>> snapshot,
+  ) {
+    final dailyAnxietyPoints = <ChartDataPoint>[];
+    final dailyMoodPoints = <ChartDataPoint>[];
 
-              if (moodScore is num && moodScore > 0) {
-                dailyMoodPoints.add(
-                  ChartDataPoint(epoch, moodScore.toDouble()),
-                );
-              }
-            }
-          }
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      final ts = data['timestamp'] as Timestamp?;
+      final remainingPercent = data['anxietyRemainingPercent'];
+      final moodScore = data['moodScore'];
 
-          dailyAnxietyPoints.sort((a, b) => a.x.compareTo(b.x));
-          dailyMoodPoints.sort((a, b) => a.x.compareTo(b.x));
+      if (ts != null) {
+        final epoch = ts.toDate().millisecondsSinceEpoch.toDouble();
 
-          return {
-            'dailyAnxiety': dailyAnxietyPoints,
-            'dailyMood': dailyMoodPoints,
-          };
-        });
+        if (remainingPercent is num && remainingPercent > 0) {
+          dailyAnxietyPoints.add(
+            ChartDataPoint(epoch, remainingPercent.toDouble()),
+          );
+        }
+
+        if (moodScore is num && moodScore > 0) {
+          dailyMoodPoints.add(ChartDataPoint(epoch, moodScore.toDouble()));
+        }
+      }
+    }
+
+    dailyAnxietyPoints.sort((a, b) => a.x.compareTo(b.x));
+    dailyMoodPoints.sort((a, b) => a.x.compareTo(b.x));
+
+    return {'dailyAnxiety': dailyAnxietyPoints, 'dailyMood': dailyMoodPoints};
   }
 }

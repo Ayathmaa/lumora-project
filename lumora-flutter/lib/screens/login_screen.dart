@@ -3,9 +3,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
 import 'package:lumora_flutter/screens/signup_screen.dart';
 import 'package:lumora_flutter/screens/questionnaire_screen.dart';
-import 'package:lumora_flutter/screens/main_shell.dart';
-import 'package:lumora_flutter/screens/google_profile_completion_screen.dart';
-import 'package:lumora_flutter/screens/anonymous_username_screen.dart';
 
 // Design constants
 const _kNavy = Color(0xFF1A3A5C);
@@ -42,11 +39,6 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       await _authService.signInAnonymously();
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const AnonymousUsernameScreen()),
-        (route) => false,
-      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -74,12 +66,6 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailController.text,
         password: _passwordController.text,
       );
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainShell()),
-          (route) => false,
-        );
-      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -98,12 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final result = await _authService.signInWithGoogle();
       if (!mounted) return;
-      final needsProfileCompletion =
-          result.user == null ||
-          await _authService.needsProfileCompletion(result.user!.uid);
-      if (!mounted) return;
-      if (result.additionalUserInfo?.isNewUser == true ||
-          needsProfileCompletion) {
+      if (result.additionalUserInfo?.isNewUser == true) {
         setState(() => _isLoading = false);
         final passed = await Navigator.push(
           context,
@@ -112,24 +93,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 (_) => const QuestionnaireScreen(deleteAccountOnFail: true),
           ),
         );
-        if (!mounted) return;
         if (passed != true) {
           await _authService.signOut();
           return;
         }
-        if (!mounted) return;
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder:
-                (_) => GoogleProfileCompletionScreen(googleUser: result.user!),
-          ),
-          (route) => false,
-        );
-      } else {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainShell()),
-          (route) => false,
-        );
       }
     } catch (e) {
       if (mounted) {
@@ -571,7 +538,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const SignupScreen(),
+                                builder:
+                                    (_) => const QuestionnaireScreen(
+                                      nextScreen: SignupScreen(),
+                                    ),
                               ),
                             ),
                         child: const Text(

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:lumora_flutter/services/auth_service.dart';
 import 'package:lumora_flutter/services/mood_service.dart';
@@ -39,16 +37,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   int? _selectedMood; // 0 = saddest … 4 = happiest
   String? _anonUsername;
-  bool _isMoodVisible = false;
   bool _isMoodSaved = false;
   bool _isMoodSaving = false;
-  Timer? _moodTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initMoodVisibility();
     _checkTodayMood();
 
     final user = _authService.currentUser;
@@ -72,20 +67,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               debugPrint('HomeScreen: could not load guest username – $e');
             });
       }
-    }
-  }
-
-  void _initMoodVisibility() {
-    final now = DateTime.now();
-    // Show mood card from 7 PM onwards.
-    if (now.hour >= 19) {
-      _isMoodVisible = true;
-    } else {
-      // Schedule the card to appear at exactly 19:00 today.
-      final target = DateTime(now.year, now.month, now.day, 19, 0, 0);
-      _moodTimer = Timer(target.difference(now), () {
-        if (mounted) setState(() => _isMoodVisible = true);
-      });
     }
   }
 
@@ -127,7 +108,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _moodTimer?.cancel();
     super.dispose();
   }
 
@@ -179,17 +159,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               const _InsightsCard(),
               const SizedBox(height: 14),
 
-              // ── daily mood log (visible from 7 PM) ───────────────────────
-              if (_isMoodVisible) ...[
-                _MoodCard(
-                  selectedMood: _selectedMood,
-                  onMoodSelected: (i) => setState(() => _selectedMood = i),
-                  isSaved: _isMoodSaved,
-                  isSaving: _isMoodSaving,
-                  onSave: _saveMood,
-                ),
-                const SizedBox(height: 14),
-              ],
+              // ── daily mood log ───────────────────────────────────────────
+              _MoodCard(
+                selectedMood: _selectedMood,
+                onMoodSelected: (i) => setState(() => _selectedMood = i),
+                isSaved: _isMoodSaved,
+                isSaving: _isMoodSaving,
+                onSave: _saveMood,
+              ),
+              const SizedBox(height: 14),
 
               // ── feature grid ──────────────────────────────────────────────
               const _FeatureGrid(),

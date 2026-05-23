@@ -9,7 +9,8 @@ class Insight {
   final InsightType type;
 
   const Insight({required this.text, required this.type});
-
+//It uses an enum to automatically change the UI color based on 
+//the message type—Green for improvements, Red for warnings, and Blue for general tips
   Color get color {
     switch (type) {
       case InsightType.improvement:
@@ -52,7 +53,8 @@ class InsightsService {
   Stream<List<Insight>> getInsightsStream() {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return Stream.value([]);
-
+    //It looks at the last 2 days of logs in the database. It compares them and calculates
+    // the exact percentage change to see if the user's anxiety went up or down today.
     // We can listen to daily_analytics for changes to update anxiety/mood insights reactively
     return _firestore
         .collection('users')
@@ -128,7 +130,8 @@ class InsightsService {
               }
             }
           }
-
+          //It checks the user’s last 20 journal entries. If more than half of the evening journals 
+          //show very high anxiety, it automatically prints a warning saying: "High stress detected on evenings
           // Evaluate "High stress detected on evenings" via recent cbt_journal
           final journalDocs =
               await _firestore

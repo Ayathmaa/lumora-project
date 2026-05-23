@@ -591,11 +591,60 @@ async function deleteCollectionInBatches(collectionRef: FirebaseFirestore.Collec
   }
 }
 
+async function deleteQueryInBatches(query: FirebaseFirestore.Query, batchSize = 300) {
+  let snapshot = await query.limit(batchSize).get();
+  while (snapshot.size > 0) {
+    const batch = admin.firestore().batch();
+    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+    snapshot = await query.limit(batchSize).get();
+  }
+}
+
+export const deleteMyAccount = functions.https.onCall(async (_data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError("unauthenticated", "User must be authenticated.");
+  }
+
+  const uid = context.auth.uid;
+  const authTime = context.auth.token.auth_time;
+  const firebaseInfo = context.auth.token.firebase;
+  const signInProvider =
+    typeof firebaseInfo === "object" && firebaseInfo !== null && "sign_in_provider" in firebaseInfo
+      ? (firebaseInfo as { sign_in_provider?: unknown }).sign_in_provider
+      : undefined;
+
+  if (signInProvider !== "anonymous" && typeof authTime === "number") {
+    const ageSeconds = Math.floor(Date.now() / 1000) - authTime;
+    if (ageSeconds > 10 * 60) {
+      throw new functions.https.HttpsError(
+        "failed-precondition",
+        "Please sign in again before deleting your profile."
+      );
+    }
+  }
+
+  await admin.auth().deleteUser(uid);
+  return { success: true };
+});
+
 export const onUserAccountDeleted = functions.auth.user().onDelete(async (user) => {
   const uid = user.uid;
   const userRef = db.collection('users').doc(uid);
   
   try {
+    const userSnap = await userRef.get();
+    const username = userSnap.data()?.username;
+
+    // Remove public/profile indexes that are not under users/{uid}.
+    if (typeof username === "string" && username.trim().length > 0) {
+      await db.collection('usernames').doc(username.toLowerCase()).delete().catch((error) => {
+        console.warn(`Failed to delete username mapping ${username} for UID ${uid}:`, error);
+      });
+    }
+    await deleteQueryInBatches(db.collection('usernames').where('uid', '==', uid));
+    await deleteQueryInBatches(db.collection('anoPosts').where('uid', '==', uid));
+
     // 1. Fetch all subcollections dynamically (cbt_journal, erp_sessions, daily_analytics, etc.)
     const subcollections = await userRef.listCollections();
     
@@ -606,6 +655,16 @@ export const onUserAccountDeleted = functions.auth.user().onDelete(async (user) 
     
     // 3. Delete the parent user document itself
     await userRef.delete();
+
+    await admin.storage().bucket().file(`avatars/${uid}.jpg`).delete().catch((error) => {
+      const code = typeof error === "object" && error !== null && "code" in error
+        ? (error as { code?: number | string }).code
+        : undefined;
+      if (code !== 404) {
+        console.warn(`Failed to delete avatar for UID ${uid}:`, error);
+      }
+    });
+
     console.log(`Successfully purged all GDPR user data for UID: ${uid}`);
   } catch (error) {
     console.error(`Fatal error purging user data for UID ${uid}:`, error);

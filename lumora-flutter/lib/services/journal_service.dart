@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-
+//this service saves CBT journal answers and uses a paginator to fetch history in chunks of 20
 /// A fully-parsed CBT journal entry, free of Firestore types.
 class JournalEntry {
   final int journalNumber;

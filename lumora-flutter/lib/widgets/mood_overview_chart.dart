@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/chart_data_service.dart';
 import 'progress_charts.dart';
-
+//this widget uses a StreamBuilder to listen to a live database connection from 
+//ChartDataService,
+//handles the loading and error states, and passes the active charts to the UI layout
 class MoodOverviewWidget extends StatelessWidget {
   final String? userId;
   final bool showAnxiety;
